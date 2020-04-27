@@ -1,0 +1,31 @@
+[build-system]
+requires = ["flit"]
+build-backend = "flit.buildapi"
+
+[tool.flit.metadata]
+module = "pydemic"
+dist-name = "pydemic"
+author = "Fábio Macêdo Mendes"
+author-email = "fabiomacedomendes@gmail.com"
+home-page = "http://github.com/pydemic/pydemic"
+classifiers = [ "License :: OSI Approved :: MIT License" ]
+requires = [
+  "click~=7.0",
+  "matplotlib~=3.0",
+  "numpy~=1.0",
+  "pandas~=1.0",
+  "requests~=2.0",
+  "seaborn~=0.10",
+]
+
+[tool.flit.metadata.requires-extra]
+dev = [
+  "invoke~=1.4",
+  "black~=19.0",
+  "pycodestyle~=2.5",
+  "coverage~=5.0",
+  "pytest~=5.4",
+]
+
+[tool.black]
+line-length = 100

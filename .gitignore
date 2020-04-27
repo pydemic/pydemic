@@ -1,0 +1,18 @@
+.idea
+__pycache__
+.coverage
+dist/
+covid/notebooks/.ipynb_checkpoints/
+Untitled.ipynb
+cache
+
+# docker-compose
+docker-compose*
+
+# vscode
+.devcontainer*
+.vscode
+
+# gettext
+*.mo
+notebooks
