@@ -16,7 +16,7 @@ def region_code(name):
     code when the region is present in the ISO. Finer sub-divisions not present
     in the ISO are assigned to a unique code with a similar structure.
     """
-    if hasattr(name, 'code'):
+    if hasattr(name, "code"):
         return name.code
     return region(region).code
 

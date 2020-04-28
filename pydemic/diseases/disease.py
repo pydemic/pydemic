@@ -2,6 +2,7 @@ class Disease:
     """
     Basic interface that exposes information about specific diseases.
     """
+
     def mortality_table(self):
         pass
 

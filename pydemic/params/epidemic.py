@@ -29,8 +29,6 @@ EPIDEMIC_DEFAULT = ep = EpidemicParams(
 epidemic = SimpleNamespace(
     DEFAULT=EPIDEMIC_DEFAULT,
     DEFAULT_SIR=EpidemicParams(
-        "SIR Default",
-        R0=ep.R0,
-        infectious_period=ep.incubation_period + ep.infectious_period,
+        "SIR Default", R0=ep.R0, infectious_period=ep.incubation_period + ep.infectious_period
     ),
 )

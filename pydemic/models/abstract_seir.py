@@ -10,17 +10,12 @@ class AbstractSEIR(Base):
     Abstract base class for all SEIR-based models.
     """
 
-    DATA_ALIASES = {
-        'S': 'susceptible',
-        'E': 'exposed',
-        'I': 'infectious',
-        'R': 'recovered',
-    }
+    DATA_ALIASES = {"S": "susceptible", "E": "exposed", "I": "infectious", "R": "recovered"}
 
     # Basic epidemiological parameters
     params = params.epidemic.DEFAULT
-    sigma = param_property('sigma')
-    incubation_period = param_property('incubation_period')
+    sigma = param_property("sigma")
+    incubation_period = param_property("incubation_period")
 
     # Derived expressions
     @property

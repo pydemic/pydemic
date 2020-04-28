@@ -17,24 +17,26 @@ class SEIR(ODEModel, AbstractSEIR):
         gamma = self.gamma
         sigma = self.sigma
 
-        return np.array([
-            -beta * s * (i / n),
-            +beta * s * (i / n) - sigma * e,
-            +sigma * e - gamma * i,
-            +gamma * i,
-        ])
+        return np.array(
+            [
+                -beta * s * (i / n),
+                +beta * s * (i / n) - sigma * e,
+                +sigma * e - gamma * i,
+                +gamma * i,
+            ]
+        )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
+
     @click.command()
-    @click.option('--R0', '-r', default=2.74, help='Reproduction number')
-    @click.option('--duration', '-t', default=90, type=int, help='Duration')
-    @click.option('--log', default=False, type=bool, help='Use log-scale?')
+    @click.option("--R0", "-r", default=2.74, help="Reproduction number")
+    @click.option("--duration", "-t", default=90, type=int, help="Duration")
+    @click.option("--log", default=False, type=bool, help="Use log-scale?")
     def cli(duration, r0, log):
         m = SEIR()
         m.R0 = r0
         m.run(duration)
         m.plot(show=True, log=log)
-
 
     cli()

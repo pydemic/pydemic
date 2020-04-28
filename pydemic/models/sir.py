@@ -14,25 +14,19 @@ class SIR(ODEModel, AbstractSIR):
         n = s + i + r
         beta = self.beta
         gamma = self.gamma
-        return np.array([
-            -beta * s * (i / n),
-            +beta * s * (i / n) - gamma * i,
-            +gamma * i,
-        ])
+        return np.array([-beta * s * (i / n), +beta * s * (i / n) - gamma * i, +gamma * i])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import click
 
-
     @click.command()
-    @click.option('--R0', '-r', default=2.74, help='Reproduction number')
-    @click.option('--duration', '-t', default=90, type=int, help='Duration')
-    @click.option('--linear', '-l', is_flag=True, help='Use log-scale?')
+    @click.option("--R0", "-r", default=2.74, help="Reproduction number")
+    @click.option("--duration", "-t", default=90, type=int, help="Duration")
+    @click.option("--linear", "-l", is_flag=True, help="Use log-scale?")
     def cli(duration, r0, linear):
         m = SIR(R0=r0)
         m.run(duration)
         m.plot(show=True, log=not linear)
-
 
     cli()

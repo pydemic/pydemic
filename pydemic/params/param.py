@@ -9,6 +9,7 @@ class Param(NamedTuple):
     """
     Represents a parameter
     """
+
     value: Number
     ref: Optional[str] = None
     pdf: Optional[Union[Callable, str]] = None
@@ -19,8 +20,8 @@ class Param(NamedTuple):
             suffix.append(str(self.ref))
         if self.pdf and not isinstance(self.pdf, SimpleNamespace):
             suffix.append(str(self.pdf))
-        suffix = ', '.join(suffix)
-        return f'{self.value} ({suffix})' if suffix else str(self.value)
+        suffix = ", ".join(suffix)
+        return f"{self.value} ({suffix})" if suffix else str(self.value)
 
 
 class ParamMeta(type):
@@ -28,7 +29,7 @@ class ParamMeta(type):
     def getters(cls):
         getters = {}
         for k, v in vars(cls).items():
-            if hasattr(v, 'fget'):
+            if hasattr(v, "fget"):
                 getters[k] = v.fget
         return getters
 
@@ -37,7 +38,8 @@ class Params(metaclass=ParamMeta):
     """
     Represents a set of parameters.
     """
-    __slots__ = ('name', 'refs', 'pdfs', '__dict__')
+
+    __slots__ = ("name", "refs", "pdfs", "__dict__")
 
     def __init__(self, name=None, **kwargs):
         type(self).name.__set__(self, name or type(self).__name__)
@@ -57,8 +59,9 @@ class Params(metaclass=ParamMeta):
 
     def __setattr__(self, k, v):
         raise TypeError(
-            f'Parameters are immutable. Use param.copy({k}={v!r}) to create a copy with '
-            f'different values')
+            f"Parameters are immutable. Use param.copy({k}={v!r}) to create a copy with "
+            f"different values"
+        )
 
     def __getitem__(self, item):
         try:
@@ -78,10 +81,10 @@ class Params(metaclass=ParamMeta):
         return self.summary()
 
     def __repr__(self):
-        args = (f'{k}={v.value!r}' for k, v in self)
-        args = ', '.join(args)
+        args = (f"{k}={v.value!r}" for k, v in self)
+        args = ", ".join(args)
         cls = type(self).__name__
-        return f'{cls}({self.name!r}, {args})'
+        return f"{cls}({self.name!r}, {args})"
 
     def copy(self, **kwargs):
         """
@@ -92,7 +95,7 @@ class Params(metaclass=ParamMeta):
             if hasattr(self, k):
                 kwargs[k] = v
             else:
-                raise AttributeError(f'invalid attribute: {k}')
+                raise AttributeError(f"invalid attribute: {k}")
 
         kwargs = {**self.__dict__, **kwargs}
         return cls(self.name, **kwargs)
@@ -134,8 +137,8 @@ class Params(metaclass=ParamMeta):
         """
         Print a summary of all parameters in the set.
         """
-        lines = [f'Parameters ({self.name}):', *(f'  - {k}: {p}' for k, p in self)]
-        return '\n'.join(lines)
+        lines = [f"Parameters ({self.name}):", *(f"  - {k}: {p}" for k, p in self)]
+        return "\n".join(lines)
 
 
 # Return a function always return the same value

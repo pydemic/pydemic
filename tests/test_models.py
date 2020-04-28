@@ -18,7 +18,7 @@ MODEL_CLASSES = [
 ]
 
 
-@pytest.fixture(params=MODEL_CLASSES, scope='session')
+@pytest.fixture(params=MODEL_CLASSES, scope="session")
 def model_cls(request) -> Type[models.Model]:
     return request.param
 
@@ -33,7 +33,7 @@ class ModelTester:
     def m(self, model):
         return model
 
-    @pytest.fixture(scope='session')
+    @pytest.fixture(scope="session")
     def cls(self, model_cls):
         return model_cls
 
@@ -91,8 +91,9 @@ class TestInfectiousModels(ModelTester):
         assert h.empirical_IFR < m.exposed
         assert isinstance(h, clinical_models.CrudeFR)
         assert type(h) == type(m.clinical.crude())
-        assert isinstance(m.clinical.hospitalization_with_delay(),
-                          clinical_models.HospitalizationWithDelay)
+        assert isinstance(
+            m.clinical.hospitalization_with_delay(), clinical_models.HospitalizationWithDelay
+        )
 
     def test_clinical_model_basic_api(self, m):
         m.run(10)
@@ -111,7 +112,7 @@ class TestSIR:
         m = models.eSIR()
         m.run(30)
         res = m["I"]
-        ok = m.data.loc[m.times[0], 'infectious'] * np.exp(m.K * m.times)
+        ok = m.data.loc[m.times[0], "infectious"] * np.exp(m.K * m.times)
 
         assert m.R0 == 2.74
         assert abs(m.K - m.gamma * 1.74) <= 1e-6

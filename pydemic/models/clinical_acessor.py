@@ -1,16 +1,16 @@
 import sidekick as sk
 
-cm = sk.import_later('..clinical_models', package=__package__)
+cm = sk.import_later("..clinical_models", package=__package__)
 
 
 class Clinical:
-    __slots__ = ('_model',)
+    __slots__ = ("_model",)
 
     def __init__(self, model):
         self._model = model
 
     def __call__(self, *args, **kwargs):
-        cls = getattr(self._model, 'clinical_model', cm.CrudeFR)
+        cls = getattr(self._model, "clinical_model", cm.CrudeFR)
         return self.clinical_model(cls, *args, **kwargs)
 
     def clinical_model(self, cls, *args, **kwargs):

@@ -10,7 +10,7 @@ class ODEModel(Model, ABC):
     Base class for all models that uses ordinary differential equations.
     """
 
-    integration_method = 'RK4'
+    integration_method = "RK4"
     sub_steps = 4
 
     def diff(self, x: np.ndarray, t: float) -> np.ndarray:
@@ -26,14 +26,14 @@ class ODEModel(Model, ABC):
         A single RK4 iteration step.
         """
         method = method or self.integration_method
-        if method == 'RK4':
+        if method == "RK4":
             k1 = self.diff(x, t)
             k2 = self.diff(x + 0.5 * dt * k1, t + 0.5 * dt)
             k3 = self.diff(x + 0.5 * dt * k2, t + 0.5 * dt)
             k4 = self.diff(x + 1.0 * dt * k3, t + 1.0 * dt)
             return x + (k1 + 2 * k2 + 2 * k3 + k4) * (dt / 6)
         else:
-            raise ValueError(f'unknown integration method: {method!r}')
+            raise ValueError(f"unknown integration method: {method!r}")
 
     def run_to_fill(self, data, times):
         x = self.state

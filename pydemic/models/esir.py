@@ -14,7 +14,7 @@ class eSIR(AbstractSIR):
         s0 = self.susceptible
         i0 = self.infectious
         r0 = self.recovered
-        n = (s0 + i0 + r0)
+        n = s0 + i0 + r0
         e = max(s0 / n, 0.0)
 
         R0 = self.R0
@@ -37,14 +37,14 @@ class eSIR(AbstractSIR):
         data[:, 2] = r
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import click
 
     @click.command()
-    @click.option('--R0', '-r', default=2.74, help='Reproduction number')
-    @click.option('--duration', '-t', default=90, type=int, help='Duration')
-    @click.option('--steps', '-s', default=10, type=int, help='Number of steps')
-    @click.option('--log', default=False, type=bool, help='Use log-scale?')
+    @click.option("--R0", "-r", default=2.74, help="Reproduction number")
+    @click.option("--duration", "-t", default=90, type=int, help="Duration")
+    @click.option("--steps", "-s", default=10, type=int, help="Number of steps")
+    @click.option("--log", default=False, type=bool, help="Use log-scale?")
     def cli(duration, steps, r0, log):
         m = eSIR()
         m.R0 = r0

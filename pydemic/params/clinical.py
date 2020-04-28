@@ -24,6 +24,4 @@ CLINICAL_DEFAULT = Params(
     infection_fatality_rate=0.015 * 0.14,
     hospital_fatality_rate=0.05,
 )
-clinical = SimpleNamespace(
-    DEFAULT=CLINICAL_DEFAULT,
-)
+clinical = SimpleNamespace(DEFAULT=CLINICAL_DEFAULT)

@@ -21,6 +21,7 @@ class param_property(property):
     """
     A property that simply mirrors a given param value.
     """
+
     is_param = True
     is_derived = False
 
@@ -45,6 +46,7 @@ class param_transform(property):
     """
     A property that represents a transform into a parameter.
     """
+
     is_param = True
     is_derived = True
 

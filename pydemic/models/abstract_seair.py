@@ -11,17 +11,17 @@ class AbstractSEAIR(Base, ABC):
     """
 
     DATA_ALIASES = {
-        'S': 'susceptible',
-        'E': 'exposed',
-        'A': 'asymptomatic',
-        'I': 'infectious',
-        'R': 'recovered',
+        "S": "susceptible",
+        "E": "exposed",
+        "A": "asymptomatic",
+        "I": "infectious",
+        "R": "recovered",
     }
 
     # Basic epidemiological parameters
-    rho = param_property('rho')
-    prob_symptomatic = param_property('prob_symptomatic')
-    qs = sk.alias('prob_symptomatic')
+    rho = param_property("rho")
+    prob_symptomatic = param_property("prob_symptomatic")
+    qs = sk.alias("prob_symptomatic")
 
     # Derived expressions
     @property

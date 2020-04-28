@@ -14,19 +14,15 @@ class AbstractSIR(Model, ABC):
     Abstract base class for all SIR-based models.
     """
 
-    DATA_ALIASES = {
-        'S': 'susceptible',
-        'I': 'infectious',
-        'R': 'recovered',
-    }
+    DATA_ALIASES = {"S": "susceptible", "I": "infectious", "R": "recovered"}
 
     # Basic epidemiological parameters
     params = params.epidemic.DEFAULT_SIR
-    R0 = param_property('R0')
-    infectious_period = param_property('infectious_period')
+    R0 = param_property("R0")
+    infectious_period = param_property("infectious_period")
 
     # Derived parameters and expressions
-    gamma = inverse_transform('infectious_period')
+    gamma = inverse_transform("infectious_period")
     beta = sk.property(_.gamma * _.R0)
     K = sk.property(_.gamma * (_.R0 - 1))
 

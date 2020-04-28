@@ -17,32 +17,31 @@ from ..utils import today
 NOW = datetime.datetime.now()
 TODAY = datetime.date(NOW.year, NOW.month, NOW.day)
 DAY = datetime.timedelta(days=1)
-TIME_CONVERSIONS = {'days': 1, 'weeks': 7, 'months': 365.25 / 12, 'years': 365.25}
-RATIO_CONVERSIONS = {
-    'pp': 1, 'ppc': 100, 'p1k': 1e3, 'p10k': 1e4, 'p100k': 1e5, 'p1m': 1e6
-}
-DATA_CONVERSIONS = {'int': int, 'float': float, 'str': str}
+TIME_CONVERSIONS = {"days": 1, "weeks": 7, "months": 365.25 / 12, "years": 365.25}
+RATIO_CONVERSIONS = {"pp": 1, "ppc": 100, "p1k": 1e3, "p10k": 1e4, "p100k": 1e5, "p1m": 1e6}
+DATA_CONVERSIONS = {"int": int, "float": float, "str": str}
 ELEMENTWISE_TRANSFORMS = {
-    'round': lambda x: round(x),
-    'round1': lambda x: round(x, 1),
-    'round2': lambda x: round(x, 2),
-    'round3': lambda x: round(x, 3),
-    'human': utils.fmt,
-    'pcfmt': utils.pc,
-    'p1kfmt': utils.pm,
-    'p10kfmt': utils.p10k,
-    'p100kfmt': utils.p100k,
+    "round": lambda x: round(x),
+    "round1": lambda x: round(x, 1),
+    "round2": lambda x: round(x, 2),
+    "round3": lambda x: round(x, 3),
+    "human": utils.fmt,
+    "pcfmt": utils.pc,
+    "p1kfmt": utils.pm,
+    "p10kfmt": utils.p10k,
+    "p100kfmt": utils.p100k,
 }
 not_implemented = lambda *args: sk.error(NotImplementedError)
-pplt = sk.import_later('..plot', package=__package__)
+pplt = sk.import_later("..plot", package=__package__)
 
 
 class ModelMeta(ABCMeta):
     """
     Metaclass for model classes.
     """
+
     DATA_ALIASES: dict
-    _meta: 'Meta'
+    _meta: "Meta"
 
     def __init__(cls, name, bases, ns):
         super().__init__(name, bases, ns)
@@ -53,6 +52,7 @@ class Meta:
     """
     Meta information about model
     """
+
     cls: ModelMeta
 
     def __init__(self, cls):
@@ -61,7 +61,7 @@ class Meta:
     @sk.lazy
     def component_index(self):
         cls = self.cls
-        if hasattr(cls, 'DATA_COLUMNS'):
+        if hasattr(cls, "DATA_COLUMNS"):
             items = zip(cls.DATA_COLUMNS, cls.DATA_COLUMNS)
         else:
             items = cls.DATA_ALIASES.items()
@@ -75,7 +75,7 @@ class Meta:
     def data_columns(self):
         cls = self.cls
         try:
-            return tuple(getattr(cls, 'DATA_COLUMNS'))
+            return tuple(getattr(cls, "DATA_COLUMNS"))
         except AttributeError:
             return tuple(cls.DATA_ALIASES.values())
 
@@ -95,7 +95,7 @@ class Meta:
         cls = self.cls
         for k in dir(cls):
             v = getattr(cls, k, None)
-            if hasattr(v, '__get__') and getattr(v, 'is_param', False):
+            if hasattr(v, "__get__") and getattr(v, "is_param", False):
                 yield k, v
 
 
@@ -103,6 +103,7 @@ class Model(metaclass=ModelMeta):
     """
     Base class for all models.
     """
+
     # Constants
     DATA_ALIASES = {}
 
@@ -142,7 +143,7 @@ class Model(metaclass=ModelMeta):
         s2 = set(self._meta.primary_params)
         assert s1 == s2, f"Different param set: {s1} != {s2}"
 
-        self.name = name or f'{type(self).__name__} model'
+        self.name = name or f"{type(self).__name__} model"
         self.date = pd.to_datetime(date or today())
         self.set_ic()
         self.data = make_dataframe(self)
@@ -188,7 +189,7 @@ class Model(metaclass=ModelMeta):
         elif name in self._meta.derived_params:
             setattr(self, name, _param(value).value)
         else:
-            raise ValueError(f'{name} is an invalid param name')
+            raise ValueError(f"{name} is an invalid param name")
 
     def get_param(self, name, param=False) -> Union[Number, Param]:
         """
@@ -213,7 +214,7 @@ class Model(metaclass=ModelMeta):
         if name in self._meta.derived_params:
             return getattr(self, name)
         else:
-            raise ValueError(f'invalid parameter name: {name!r}')
+            raise ValueError(f"invalid parameter name: {name!r}")
 
     #
     # Initial conditions
@@ -234,7 +235,7 @@ class Model(metaclass=ModelMeta):
     #
     def __getitem__(self, item):
         if isinstance(item, str):
-            col, _, transform = item.rpartition(':')
+            col, _, transform = item.rpartition(":")
             if col:
                 fn = self.get_data_transformer(transform)
                 return fn(col)
@@ -248,7 +249,7 @@ class Model(metaclass=ModelMeta):
             df = pd.DataFrame()
             for col in item:
                 series = self[col]
-                name = col.partition(':')[0]
+                name = col.partition(":")[0]
                 df[name] = series
             return df
 
@@ -261,7 +262,7 @@ class Model(metaclass=ModelMeta):
         elif isinstance(item, slice):
             raise NotImplementedError
         else:
-            raise TypeError(f'invalid item: {item!r}')
+            raise TypeError(f"invalid item: {item!r}")
 
     def get_data(self, name):
         """
@@ -276,9 +277,9 @@ class Model(metaclass=ModelMeta):
             return data.copy()
 
         try:
-            method = getattr(self, f'get_data_{name}')
+            method = getattr(self, f"get_data_{name}")
         except AttributeError:
-            raise ValueError(f'invalid column: {name!r}')
+            raise ValueError(f"invalid column: {name!r}")
         else:
             return method()
 
@@ -308,7 +309,8 @@ class Model(metaclass=ModelMeta):
         """
 
         # Convert index to days instead of dates
-        if name == 'dates':
+        if name == "dates":
+
             def dates_t(col):
                 data = self.get_data(col)
                 data.index = self.to_dates(data.index)
@@ -327,10 +329,10 @@ class Model(metaclass=ModelMeta):
             return time_t
 
         # Force columns to be data frames, even when results are vectors
-        elif name == 'df':
+        elif name == "df":
 
             def df_t(col):
-                name_, _, _ = col.partition(':')
+                name_, _, _ = col.partition(":")
                 series = self.get_data(col)
                 if isinstance(series, pd.DataFrame):
                     return series
@@ -339,7 +341,7 @@ class Model(metaclass=ModelMeta):
             return df_t
 
         # Force result to be numpy arrays
-        elif name == 'np':
+        elif name == "np":
 
             def np_t(col):
                 return self.get_data(col).values
@@ -348,6 +350,7 @@ class Model(metaclass=ModelMeta):
 
         # Per population
         if name in RATIO_CONVERSIONS:
+
             def ratio_t(col):
                 factor = RATIO_CONVERSIONS[name]
                 return factor * self.get_data(col) / self.initial_population
@@ -356,6 +359,7 @@ class Model(metaclass=ModelMeta):
 
         # Data and rounding conversions
         elif name in DATA_CONVERSIONS:
+
             def data_t(col):
                 kind = DATA_CONVERSIONS[name]
                 return self.get_data(col).astype(kind)
@@ -364,13 +368,14 @@ class Model(metaclass=ModelMeta):
 
         # Elementwise transforms
         elif name in ELEMENTWISE_TRANSFORMS:
+
             def rounding_t(col):
                 fn = ELEMENTWISE_TRANSFORMS[name]
                 return self.get_data(col).apply(fn)
 
             return rounding_t
         else:
-            raise ValueError(f'Invalid transform: {name}')
+            raise ValueError(f"Invalid transform: {name}")
 
     #
     # Running simulation
@@ -400,7 +405,7 @@ class Model(metaclass=ModelMeta):
         """
         raise NotImplementedError
 
-    def run_until(self, condition: Callable[['Model'], bool]):
+    def run_until(self, condition: Callable[["Model"], bool]):
         """
         Run until stop condition is satisfied.
 
@@ -432,7 +437,7 @@ class Model(metaclass=ModelMeta):
         if start_date is None:
             start_date = self.date - self.time * DAY
 
-        dates = pd.to_datetime(times, unit='D', origin=start_date)
+        dates = pd.to_datetime(times, unit="D", origin=start_date)
         return dates
 
     def to_days(self, dates: Sequence, start_date=None) -> np.ndarray:
@@ -459,11 +464,11 @@ class Model(metaclass=ModelMeta):
         Plot the result of simulation.
         """
         ax = ax or plt.gca()
-        kwargs = {'logy': log, 'ax': ax}
+        kwargs = {"logy": log, "ax": ax}
 
         def get_column(col):
             if dates:
-                col += ':dates'
+                col += ":dates"
             data = self[col]
             return data
 
