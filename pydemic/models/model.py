@@ -8,6 +8,7 @@ import pandas as pd
 import sidekick as sk
 from sidekick import placeholder as _
 
+from .clinical_acessor import Clinical
 from .. import utils
 from ..packages import plt
 from ..params import Params, Param, param as _param
@@ -59,14 +60,24 @@ class Meta:
 
     @sk.lazy
     def component_index(self):
+        cls = self.cls
+        if hasattr(cls, 'DATA_COLUMNS'):
+            items = zip(cls.DATA_COLUMNS, cls.DATA_COLUMNS)
+        else:
+            items = cls.DATA_ALIASES.items()
+
         idx_map = {}
-        for i, (k, v) in enumerate(self.cls.DATA_ALIASES.items()):
+        for i, (k, v) in enumerate(items):
             idx_map[k] = idx_map[v] = i
         return idx_map
 
     @sk.lazy
-    def columns(self):
-        return tuple(self.cls.DATA_ALIASES.values())
+    def data_columns(self):
+        cls = self.cls
+        try:
+            return tuple(getattr(cls, 'DATA_COLUMNS'))
+        except AttributeError:
+            return tuple(cls.DATA_ALIASES.values())
 
     @sk.lazy
     def primary_params(self):
@@ -113,13 +124,16 @@ class Model(metaclass=ModelMeta):
     # Cached properties
     initial_population = sk.property(lambda m: m.data.iloc[0].sum())
 
+    # Special accessors
+    clinical = property(Clinical)
+
     @classmethod
     def create(cls, params=None):
         new = object.__new__(cls)
         new.set_params(params)
         return new
 
-    def __init__(self, params=None, date=None, *, run=None, name=None, time=0, **kwargs):
+    def __init__(self, params=None, *, run=None, name=None, date=None, **kwargs):
         self._params = {}
         self.set_params(self.params)
         if params:
@@ -130,7 +144,6 @@ class Model(metaclass=ModelMeta):
 
         self.name = name or f'{type(self).__name__} model'
         self.date = pd.to_datetime(date or today())
-        self.time = time
         self.set_ic()
         self.data = make_dataframe(self)
 
@@ -226,7 +239,10 @@ class Model(metaclass=ModelMeta):
                 fn = self.get_data_transformer(transform)
                 return fn(col)
             else:
-                return self.get_data(transform)
+                try:
+                    return self.get_data(transform)
+                except ValueError:
+                    raise KeyError(item)
 
         elif isinstance(item, list):
             df = pd.DataFrame()
@@ -438,7 +454,7 @@ class Model(metaclass=ModelMeta):
     #
     # Plotting and showing information
     #
-    def plot(self, ax=None, log=True, show=False, dates=False):
+    def plot(self, components=None, *, ax=None, log=True, show=False, dates=False):
         """
         Plot the result of simulation.
         """
@@ -451,7 +467,8 @@ class Model(metaclass=ModelMeta):
             data = self[col]
             return data
 
-        for col in self.DATA_ALIASES.values():
+        components = self.DATA_ALIASES.values() if components is None else components
+        for col in components:
             data = get_column(col)
             data.plot(label=col.title(), **kwargs)
 
@@ -464,6 +481,6 @@ def make_dataframe(model: Model):
     Create the initial dataframe for the given model.
     """
     data = [model.state]
-    cols = model._meta.columns
+    cols = model._meta.data_columns
     index = [model.time]
     return pd.DataFrame(data, columns=cols, index=index)

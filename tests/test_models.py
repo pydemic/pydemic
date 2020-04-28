@@ -5,6 +5,7 @@ import pandas as pd
 import pytest
 from pandas.testing import assert_series_equal
 
+from pydemic import clinical_models
 from pydemic import models
 
 MODEL_CLASSES = [
@@ -27,7 +28,7 @@ def model(model_cls) -> models.Model:
     return model_cls()
 
 
-class TestModels:
+class ModelTester:
     @pytest.fixture
     def m(self, model):
         return model
@@ -36,6 +37,8 @@ class TestModels:
     def cls(self, model_cls):
         return model_cls
 
+
+class TestInfectiousModels(ModelTester):
     def test_model_basic_api_interactions(self, m):
         m.run(7)
         assert m.R0 > 1
@@ -63,8 +66,44 @@ class TestModels:
         m2 = cls(run=10)
         assert all(m1.data == m2.data)
 
-    def test_model_data_uses_integer_based_index(self, model):
-        assert model.data.index.dtype == int
+    def test_model_time_is_not_reset_from_clinical_model(self, m):
+        m.run(10)
+        date = m.date
+        h = m.clinical()
+        assert h.time == m.time == 10
+        assert h.date == m.date == date
+
+    def test_model_can_run_multiple_times(self, m):
+        m.run(5)
+        m.run(5)
+        m.run(5)
+        assert m.time == 15
+        assert len(m.times) == 16
+        assert len(set(m.times)) == 16
+        assert all(np.diff(m.times) > 0)
+
+    def test_model_data_uses_numeric_index(self, m):
+        assert m.data.index.dtype == float
+
+    def test_clinical_accessor(self, m):
+        h = m.clinical()
+        assert h.empirical_CFR < m.exposed
+        assert h.empirical_IFR < m.exposed
+        assert isinstance(h, clinical_models.CrudeFR)
+        assert type(h) == type(m.clinical.crude())
+        assert isinstance(m.clinical.hospitalization_with_delay(),
+                          clinical_models.HospitalizationWithDelay)
+
+    def test_clinical_model_basic_api(self, m):
+        m.run(10)
+        cm = m.clinical()
+        c = cm["cases"]
+        d = cm["deaths"]
+        h = cm["hospitalized"]
+        H = cm["hospitalizations"]
+        assert all(h <= H)
+        assert all(d <= H)
+        assert all(H <= c)
 
 
 class TestSIR:

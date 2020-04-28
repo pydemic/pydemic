@@ -32,6 +32,7 @@ class AbstractSIR(Model, ABC):
 
     # Simulation state
     susceptible = state_property(0)
+    exposed = state_property(1)  # an alias to infectious
     infectious = state_property(1)
     recovered = state_property(2)
 

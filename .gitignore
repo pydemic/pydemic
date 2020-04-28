@@ -15,4 +15,6 @@ docker-compose*
 
 # gettext
 *.mo
-notebooks
+notebooks/playground.ipynb
+.ipynb_checkpoints
+old

@@ -20,6 +20,8 @@ CLINICAL_DEFAULT = Params(
     prob_fatality=0.015 / 0.05,
     prob_no_hospitalization_fatality=0.30,
     prob_no_icu_fatality=1.00,
+    case_fatality_rate=0.015,
+    infection_fatality_rate=0.015 * 0.14,
     hospital_fatality_rate=0.05,
 )
 clinical = SimpleNamespace(
