@@ -60,6 +60,13 @@ class TestInfectiousModels(ModelTester):
         assert m["I", 0] == m.data.loc[0, "infectious"]
         assert m["I", -1] == m.data.loc[len(m.data) - 1, "infectious"]
 
+    def test_can_override_model_parameters_during_initialization(self, cls):
+        m = cls(R0=2)
+        assert m.R0 == 2.0
+
+        m.run(3)
+        assert m.R0 == 2.0
+
     def test_model_can_run_during_initialization(self, cls):
         m1 = cls()
         m1.run(10)
@@ -84,6 +91,14 @@ class TestInfectiousModels(ModelTester):
 
     def test_model_data_uses_numeric_index(self, m):
         assert m.data.index.dtype == float
+
+    def test_model_exposes_parameters_as_timeseries(self, m):
+        m.run(7)
+        R0 = m.R0
+        series = m["R0"]
+        print(series)
+        assert len(series) == 8
+        assert (series == R0).all()
 
     def test_clinical_accessor(self, m):
         h = m.clinical()
