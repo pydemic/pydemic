@@ -25,8 +25,11 @@ class TestCovid19APIs:
     @pytest.mark.slow
     @pytest.mark.external
     def test_corona_api(self):
-        br = epidemic_curve("BR", api="corona-api.com")
+        br = epidemic_curve("BR", api="corona-api.com", extra=True)
         assert list(br.columns) == ["cases", "fatalities", "recovered"]
+
+        br = epidemic_curve("BR", api="corona-api.com", extra=False)
+        assert list(br.columns) == ["cases", "fatalities"]
 
     @pytest.mark.slow
     @pytest.mark.external

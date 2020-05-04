@@ -1,18 +1,17 @@
 import datetime
-from numbers import Number
-from typing import Sequence, Callable, Union
+from typing import Sequence, Callable
 
 import numpy as np
 import pandas as pd
 import sidekick as sk
 from sidekick import placeholder as _
 
-from .model_meta import ModelMeta
 from .clinical_acessor import Clinical
+from .model_meta import ModelMeta
 from .. import utils
 from ..packages import plt
-from ..params import Params, Param, param as _param
-from ..utils import today
+from ..params import WithParams
+from ..utils import today, not_implemented
 
 NOW = datetime.datetime.now()
 TODAY = datetime.date(NOW.year, NOW.month, NOW.day)
@@ -31,11 +30,11 @@ ELEMENTWISE_TRANSFORMS = {
     "p10kfmt": utils.p10k,
     "p100kfmt": utils.p100k,
 }
-not_implemented = lambda *args: sk.error(NotImplementedError)
+
 pplt = sk.import_later("..plot", package=__package__)
 
 
-class Model(metaclass=ModelMeta):
+class Model(WithParams, metaclass=ModelMeta):
     """
     Base class for all models.
     """
@@ -44,7 +43,6 @@ class Model(metaclass=ModelMeta):
     DATA_ALIASES = {}
 
     # Initial values
-    params: Params = sk.lazy(not_implemented)
     state: np.ndarray = sk.lazy(not_implemented)
 
     # Initial time
@@ -71,14 +69,7 @@ class Model(metaclass=ModelMeta):
         return new
 
     def __init__(self, params=None, *, run=None, name=None, date=None, **kwargs):
-        self._params = {}
-        self.set_params(self.params)
-        if params:
-            self.set_params(params)
-        s1 = set(self._params)
-        s2 = set(self._meta.params__primary)
-        assert s1 == s2, f"Different param set: {s1} != {s2}"
-
+        WithParams.__init__(self, params)
         self.name = name or f"{type(self).__name__} model"
         self.date = pd.to_datetime(date or today())
         self.set_ic()
@@ -97,60 +88,6 @@ class Model(metaclass=ModelMeta):
 
     def __str__(self):
         return self.name
-
-    #
-    # Parameters
-    #
-    def set_params(self, params=None, **kwargs):
-        """
-        Set a collection of params.
-        """
-        if params:
-            for p in self._meta.params.primary:
-                self._params[p] = kwargs.pop(p) if p in kwargs else params.param(p)
-
-        for k, v in kwargs:
-            self.set_param(k, v)
-
-        name = type(self).__name__
-        self.params = Params(name, **self._params)
-
-    def set_param(self, name, value, *, pdf=None, ref=None):
-        """
-        Sets a parameter in the model, possibly assigning a distribution and
-        reference.
-        """
-        if name in self._meta.params.primary:
-            self._params[name] = _param(value, pdf=pdf, ref=ref)
-        elif name in self._meta.params.derived:
-            setattr(self, name, _param(value).value)
-        else:
-            raise ValueError(f"{name} is an invalid param name")
-
-    def get_param(self, name, param=False) -> Union[Number, Param]:
-        """
-        Return the parameter with given name.
-
-        Args:
-            name:
-                Parameter name.
-            param:
-                If True, return a :cls:`Param` instance instead of a value.
-        """
-        if param:
-            try:
-                return self._params[name]
-            except KeyError:
-                param = self.get_param(name)
-                return _param(param)
-        try:
-            return self._params[name].value
-        except KeyError:
-            pass
-        if name in self._meta.params__derived:
-            return getattr(self, name)
-        else:
-            raise ValueError(f"invalid parameter name: {name!r}")
 
     #
     # Initial conditions
