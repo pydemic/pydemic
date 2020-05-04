@@ -1,8 +1,11 @@
-from numbers import Number
+from numbers import Number, Real
 from types import SimpleNamespace
-from typing import NamedTuple, Optional, Callable, Union
+from typing import NamedTuple, Optional, Callable, Union, Any
 
 import sidekick as sk
+
+ParamLike = Any
+NOT_GIVEN = object()
 
 
 class Param(NamedTuple):
@@ -10,9 +13,14 @@ class Param(NamedTuple):
     Represents a parameter
     """
 
-    value: Number
+    data: Number
     ref: Optional[str] = None
     pdf: Optional[Union[Callable, str]] = None
+
+    @property
+    def value(self):
+        v = self.data
+        return v() if callable(v) else v
 
     def __str__(self):
         suffix = []
@@ -100,16 +108,16 @@ class Params(metaclass=ParamMeta):
         kwargs = {**self.__dict__, **kwargs}
         return cls(self.name, **kwargs)
 
-    def value(self, key, default=None) -> Number:
+    def value(self, key, default=NOT_GIVEN) -> Number:
         """
         Return the value of the given parameter.
         """
         try:
             value = getattr(self, key)
-            return value
+            return value() if callable(value) else value
         except KeyError:
-            if default is None:
-                raise
+            if default is NOT_GIVEN:
+                raise ValueError(f"Invalid parameter: {key}")
             return default
 
     def ref(self, key) -> Optional[str]:
@@ -156,3 +164,58 @@ def param(value, ref=None, pdf=None) -> Param:
         value = value.value
 
     return Param(value, ref, pdf)
+
+
+def get_param(name: str, params: ParamLike, default: Real = None) -> Real:
+    """
+    Get a parameter from a params object.
+
+    Args:
+        name:
+            Parameter name.
+        params:
+            A params object. It can be Python object that stores parameters as
+            attributes, methods or keys.
+        default:
+            Default value if parameter is not found in the params object.
+
+    Returns:
+        A parameter value.
+
+    See Also:
+        :func:`select_param`
+    """
+    try:
+        value = getattr(params, name)
+        return value() if callable(value) else value
+    except AttributeError:
+        pass
+
+    try:
+        return params[name]
+    except (KeyError, TypeError):
+        if default is None:
+            raise ValueError("Parameter not found and no default was given")
+        return default
+
+
+def select_param(name: str, params: ParamLike, value: Number = None) -> Real:
+    """
+    Similar to :func:`get_param`, but the explicitly passed value takes precedence.
+
+    Args:
+        name:
+            Parameter name.
+        params:
+            A params object like in the :func:`get_param` function.
+        value:
+            An optional value override. If value is None, fetches value from
+            the params object.
+
+    Returns:
+        A parameter value.
+
+    See Also:
+        :func:`get_param`
+    """
+    return get_param(name, params) if value is None else value
