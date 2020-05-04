@@ -1,4 +1,4 @@
-from .formatting import fmt, pc, p10k, p100k, pm, indent
+from .formatting import fmt, pc, p10k, p100k, pm, indent, slugify
 from .properties import (
     state_property,
     param_property,

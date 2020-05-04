@@ -104,3 +104,22 @@ def indent(st, indent=4):
     if isinstance(indent, int):
         indent = " " * indent
     return "".join(indent + ln for ln in st.splitlines(keepends=True))
+
+
+def slugify(st, suffixes=(), prefixes=()):
+    """
+    Simplify string into a slug.
+
+    If a list of slugified suffixes or prefixes is given, they are removed from
+    the resulting string.
+    """
+    st = st.lower()
+    st = re.sub(r"\s+", "-", st)
+    st = re.sub(r"[^\w]", "", st)
+    if suffixes:
+        regex = "|".join(map(re.escape, suffixes))
+        re.sub(fr"{regex}$", "", st)
+    if prefixes:
+        regex = "|".join(map(re.escape, prefixes))
+        re.sub(fr"^{regex}", "", st)
+    return st

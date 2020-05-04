@@ -3,8 +3,11 @@ from datetime import date, datetime, time, timedelta
 
 from sidekick import import_later as _imp
 from sidekick import fn, X, Y, F, X_i, L, placeholder as _
+import mundi
+import mundi_demography
 
 from pydemic_jupyter.all import *
+from .packages import *
 from .models import *
 from .utils import *
 
