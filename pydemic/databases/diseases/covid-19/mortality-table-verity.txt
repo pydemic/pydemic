@@ -1,0 +1,5 @@
+Based on data on "Estimates of the severity of coronavirus disease 2019: a model-based
+analysis" by Robert Verity, et. al. Article can be dowloaded at https://www.thelancet.com/journals/laninf/article/PIIS1473-3099(20)30243-7/fulltext
+
+It includes CFR, IFR with confidence intervals (CFR_low/CFR_high) columns. The data also includes total deaths,
+and crude estimates for CFR and estimates after censoring correction.
