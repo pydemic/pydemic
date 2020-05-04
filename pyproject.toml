@@ -15,6 +15,7 @@ requires = [
   "mundi",
   "mundi-demography",
   "mundi-contact-matrix",
+  "joblib",
   "click~=7.0",
   "matplotlib~=3.0",
   "numpy~=1.0",
