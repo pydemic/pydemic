@@ -35,3 +35,13 @@ def evil():
     from sidekick.evil import forbidden_powers
 
     forbidden_powers()
+
+
+def documentation_mode():
+    """
+    Monkey patch random things before executing a notebook that will be part of
+    documentation.
+    """
+    from matplotlib.axes import SubplotBase
+
+    SubplotBase.__repr__ = lambda _: ""

@@ -63,7 +63,7 @@ class Disease(ABC):
     def __repr__(self):
         return f"{type(self).__name__}()"
 
-    def mortality_table(self, source: str = None, qualified=False):
+    def mortality_table(self, source: str = None, qualified=False, extra=False):
         """
         Return the mortality table of the disease.
 
@@ -79,10 +79,14 @@ class Disease(ABC):
             qualified (bool):
                 If True, return a :cls:`Dataset` namedtuple with
                 (data, source, notes) attributes.
+            extra (bool):
+                If True, display additional columns alongside with ["IRF", "CFR"].
+                The extra columns are variable for each dataset.
         """
-        return self._read_dataset("mortality-table", source, qualified)
+        df = self._read_dataset("mortality-table", source, qualified)
+        return df if extra else df[["IFR", "CFR"]]
 
-    def hospitalization_table(self, source=None, qualified=False):
+    def hospitalization_table(self, source=None, qualified=False, extra=False):
         """
         Return the hospitalization table of the disease.
 
@@ -92,7 +96,8 @@ class Disease(ABC):
         detailed information about the disease progression including "icu"
         admissions, need for "ventilators", etc.
         """
-        return self._read_dataset("hospitalization-table", source, qualified)
+        df = self._read_dataset("hospitalization-table", source, qualified)
+        return df if extra else df[["hospitalization"]]
 
     def _read_dataset(self, which, source, qualified):
         """
