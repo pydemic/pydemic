@@ -1,5 +1,4 @@
 import datetime
-from abc import ABCMeta
 from numbers import Number
 from typing import Sequence, Callable, Union
 
@@ -8,6 +7,7 @@ import pandas as pd
 import sidekick as sk
 from sidekick import placeholder as _
 
+from .model_meta import ModelMeta
 from .clinical_acessor import Clinical
 from .. import utils
 from ..packages import plt
@@ -33,70 +33,6 @@ ELEMENTWISE_TRANSFORMS = {
 }
 not_implemented = lambda *args: sk.error(NotImplementedError)
 pplt = sk.import_later("..plot", package=__package__)
-
-
-class ModelMeta(ABCMeta):
-    """
-    Metaclass for model classes.
-    """
-
-    DATA_ALIASES: dict
-    _meta: "Meta"
-
-    def __init__(cls, name, bases, ns):
-        super().__init__(name, bases, ns)
-        cls._meta = Meta(cls)
-
-
-class Meta:
-    """
-    Meta information about model
-    """
-
-    cls: ModelMeta
-
-    def __init__(self, cls):
-        self.cls = cls
-
-    @sk.lazy
-    def component_index(self):
-        cls = self.cls
-        if hasattr(cls, "DATA_COLUMNS"):
-            items = zip(cls.DATA_COLUMNS, cls.DATA_COLUMNS)
-        else:
-            items = cls.DATA_ALIASES.items()
-
-        idx_map = {}
-        for i, (k, v) in enumerate(items):
-            idx_map[k] = idx_map[v] = i
-        return idx_map
-
-    @sk.lazy
-    def data_columns(self):
-        cls = self.cls
-        try:
-            return tuple(getattr(cls, "DATA_COLUMNS"))
-        except AttributeError:
-            return tuple(cls.DATA_ALIASES.values())
-
-    @sk.lazy
-    def primary_params(self):
-        return [k for k, v in self._params() if not v.is_derived]
-
-    @sk.lazy
-    def derived_params(self):
-        return [k for k, v in self._params() if v.is_derived]
-
-    @sk.lazy
-    def params(self):
-        return self.primary_params + self.derived_params
-
-    def _params(self):
-        cls = self.cls
-        for k in dir(cls):
-            v = getattr(cls, k, None)
-            if hasattr(v, "__get__") and getattr(v, "is_param", False):
-                yield k, v
 
 
 class Model(metaclass=ModelMeta):
@@ -140,7 +76,7 @@ class Model(metaclass=ModelMeta):
         if params:
             self.set_params(params)
         s1 = set(self._params)
-        s2 = set(self._meta.primary_params)
+        s2 = set(self._meta.params__primary)
         assert s1 == s2, f"Different param set: {s1} != {s2}"
 
         self.name = name or f"{type(self).__name__} model"
@@ -149,7 +85,7 @@ class Model(metaclass=ModelMeta):
         self.data = make_dataframe(self)
 
         for k, v in kwargs.items():
-            if k in self._meta.params:
+            if k in self._meta.params.all:
                 self.set_param(k, v)
             elif hasattr(self, k):
                 setattr(self, k, v)
@@ -170,7 +106,7 @@ class Model(metaclass=ModelMeta):
         Set a collection of params.
         """
         if params:
-            for p in self._meta.primary_params:
+            for p in self._meta.params.primary:
                 self._params[p] = kwargs.pop(p) if p in kwargs else params.param(p)
 
         for k, v in kwargs:
@@ -184,9 +120,9 @@ class Model(metaclass=ModelMeta):
         Sets a parameter in the model, possibly assigning a distribution and
         reference.
         """
-        if name in self._meta.primary_params:
+        if name in self._meta.params.primary:
             self._params[name] = _param(value, pdf=pdf, ref=ref)
-        elif name in self._meta.derived_params:
+        elif name in self._meta.params.derived:
             setattr(self, name, _param(value).value)
         else:
             raise ValueError(f"{name} is an invalid param name")
@@ -211,7 +147,7 @@ class Model(metaclass=ModelMeta):
             return self._params[name].value
         except KeyError:
             pass
-        if name in self._meta.derived_params:
+        if name in self._meta.params__derived:
             return getattr(self, name)
         else:
             raise ValueError(f"invalid parameter name: {name!r}")
@@ -268,6 +204,16 @@ class Model(metaclass=ModelMeta):
         """
         Return a data column with the given name.
         """
+
+        # Specialized data getter methods take precedence
+        try:
+            method = getattr(self, f"get_data_{name}")
+        except AttributeError:
+            pass
+        else:
+            return method()
+
+        # The next step is to check if requested column is in the state space
         name = self.DATA_ALIASES.get(name, name)
         try:
             data = self.data[name]
@@ -276,12 +222,13 @@ class Model(metaclass=ModelMeta):
         else:
             return data.copy()
 
-        try:
-            method = getattr(self, f"get_data_{name}")
-        except AttributeError:
-            raise ValueError(f"invalid column: {name!r}")
-        else:
-            return method()
+        # Finally, it may correspond to a parameter. We have two options. It may
+        # be explicitly stored as a time-series or it may be computed implicitly
+        # from the other parameters.
+        if name in self._meta.params.all:
+            x = self.get_param(name)
+            return pd.Series([x] * self.iter, index=self.times, name=name)
+        raise ValueError(f"invalid column: {name!r}")
 
     def get_data_transformer(self, name):
         """
@@ -459,7 +406,7 @@ class Model(metaclass=ModelMeta):
     #
     # Plotting and showing information
     #
-    def plot(self, components=None, *, ax=None, log=True, show=False, dates=False):
+    def plot(self, components=None, *, ax=None, log=True, show=False, dates=False, legend=True):
         """
         Plot the result of simulation.
         """
@@ -476,6 +423,8 @@ class Model(metaclass=ModelMeta):
         for col in components:
             data = get_column(col)
             data.plot(label=col.title(), **kwargs)
+        if legend:
+            ax.legend()
 
         if show:
             plt.show()

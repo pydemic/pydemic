@@ -1,12 +1,16 @@
 from abc import ABC
+from numbers import Number, Real
+from typing import Any
 
 from sidekick import placeholder as _
 
-from pydemic.utils.properties import inverse_transform
 from .model import Model
 from .. import params
 from ..packages import np, sk, integrate, pd
-from ..utils import param_property, state_property
+from ..utils import param_property, state_property, inverse_transform
+
+Param = Any
+NOT_GIVEN = object()
 
 
 class AbstractSIR(Model, ABC):
@@ -32,10 +36,16 @@ class AbstractSIR(Model, ABC):
     infectious = state_property(1)
     recovered = state_property(2)
 
+    #
+    # Model API
+    #
     def set_ic(self, vector=(1e6 - 1, 1, 0), **kwargs):
         vector = np.array(vector, dtype=float)
         super().set_ic(vector, **kwargs)
 
+    #
+    # Process data
+    #
     def get_data_N(self):
         return self.data.sum(1)
 
@@ -46,11 +56,11 @@ class AbstractSIR(Model, ABC):
 
     def get_data_resolved_cases(self):
         I = self["infectious"]
-        res = integrate.cumtrapz(I, self.times, initial=I.iloc[0])
+        res = integrate.cumtrapz(I, self.times, initial=0.0)
         return pd.Series(res * self.gamma, index=I.index)
 
     def get_data_cases(self):
         i0 = np.sum(self.data.iloc[0].infectious)
         infections = self["force"] * self["susceptible"]
-        res = integrate.cumtrapz(infections, self.times, initial=i0)
+        res = integrate.cumtrapz(infections, self.times, initial=0.0) + i0
         return pd.Series(res, index=infections.index)
