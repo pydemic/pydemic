@@ -2,6 +2,7 @@ import numpy as np
 
 from .abstract_sir import AbstractSIR as Base
 from .. import params
+from ..formulas import K, R0_from_K
 from ..utils import state_property, param_property
 
 
@@ -20,10 +21,11 @@ class AbstractSEIR(Base):
     # Derived expressions
     @property
     def K(self):
-        g = self.gamma
-        s = self.sigma
-        R0 = self.R0
-        return 0.5 * (s + g) * (np.sqrt(1 + 4 * (R0 - 1)) - 1)
+        return K("SEIR", gamma=self.gamma, sigma=self.sigma, R0=self.R0)
+
+    @K.setter
+    def K(self, value):
+        self.R0 = R0_from_K("SEIR", gamma=self.gamma, sigma=self.sigma, K=value)
 
     # Simulation state
     susceptible = state_property(0)
