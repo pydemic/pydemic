@@ -10,6 +10,9 @@ from pydemic_jupyter.all import *
 from .packages import *
 from .models import *
 from .utils import *
+from .diseases import *
+from .formulas import *
+from . import region
 
 sk = _imp("sidekick")
 h = _imp("hyperpython:h")

@@ -153,7 +153,7 @@ class Params(metaclass=ParamMeta):
 cte = lambda v: lambda: v
 
 
-def param(value, ref=None, pdf=None) -> Param:
+def param(value: ParamLike, ref=None, pdf=None) -> Param:
     """
     Declares a parameter with optional reference attribution and RVS
     attribution.
