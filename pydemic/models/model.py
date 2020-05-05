@@ -7,8 +7,8 @@ import sidekick as sk
 from sidekick import placeholder as _
 
 from .clinical_acessor import Clinical
+from .data_transforms import DATA_TRANSFORMS, MODEL_TRANSFORMS
 from .model_meta import ModelMeta
-from .. import utils
 from ..packages import plt
 from ..params import WithParams
 from ..utils import today, not_implemented
@@ -16,21 +16,6 @@ from ..utils import today, not_implemented
 NOW = datetime.datetime.now()
 TODAY = datetime.date(NOW.year, NOW.month, NOW.day)
 DAY = datetime.timedelta(days=1)
-TIME_CONVERSIONS = {"days": 1, "weeks": 7, "months": 365.25 / 12, "years": 365.25}
-RATIO_CONVERSIONS = {"pp": 1, "ppc": 100, "p1k": 1e3, "p10k": 1e4, "p100k": 1e5, "p1m": 1e6}
-DATA_CONVERSIONS = {"int": int, "float": float, "str": str}
-ELEMENTWISE_TRANSFORMS = {
-    "round": lambda x: round(x),
-    "round1": lambda x: round(x, 1),
-    "round2": lambda x: round(x, 2),
-    "round3": lambda x: round(x, 3),
-    "human": utils.fmt,
-    "pcfmt": utils.pc,
-    "p1kfmt": utils.pm,
-    "p10kfmt": utils.p10k,
-    "p100kfmt": utils.p100k,
-}
-
 pplt = sk.import_later("..plot", package=__package__)
 
 
@@ -192,73 +177,15 @@ class Model(WithParams, metaclass=ModelMeta):
                 Human-friendly numeric formats.
         """
 
-        # Convert index to days instead of dates
-        if name == "dates":
+        if name in MODEL_TRANSFORMS:
+            fn = MODEL_TRANSFORMS[name]
+            return lambda col: fn(self, col)
 
-            def dates_t(col):
-                data = self.get_data(col)
-                data.index = self.to_dates(data.index)
-                return data
+        try:
+            fn = DATA_TRANSFORMS[name]
+            return lambda col: fn(self[col])
 
-            return dates_t
-
-        elif name in TIME_CONVERSIONS:
-
-            def time_t(col):
-                factor = TIME_CONVERSIONS[name]
-                data = self.get_data(col)
-                data.index = data.index / factor
-                return data
-
-            return time_t
-
-        # Force columns to be data frames, even when results are vectors
-        elif name == "df":
-
-            def df_t(col):
-                name_, _, _ = col.partition(":")
-                series = self.get_data(col)
-                if isinstance(series, pd.DataFrame):
-                    return series
-                return pd.DataFrame({name_: series.values}, index=series.index)
-
-            return df_t
-
-        # Force result to be numpy arrays
-        elif name == "np":
-
-            def np_t(col):
-                return self.get_data(col).values
-
-            return np_t
-
-        # Per population
-        if name in RATIO_CONVERSIONS:
-
-            def ratio_t(col):
-                factor = RATIO_CONVERSIONS[name]
-                return factor * self.get_data(col) / self.initial_population
-
-            return ratio_t
-
-        # Data and rounding conversions
-        elif name in DATA_CONVERSIONS:
-
-            def data_t(col):
-                kind = DATA_CONVERSIONS[name]
-                return self.get_data(col).astype(kind)
-
-            return data_t
-
-        # Elementwise transforms
-        elif name in ELEMENTWISE_TRANSFORMS:
-
-            def rounding_t(col):
-                fn = ELEMENTWISE_TRANSFORMS[name]
-                return self.get_data(col).apply(fn)
-
-            return rounding_t
-        else:
+        except KeyError:
             raise ValueError(f"Invalid transform: {name}")
 
     #
@@ -321,8 +248,13 @@ class Model(WithParams, metaclass=ModelMeta):
         if start_date is None:
             start_date = self.date - self.time * DAY
 
-        dates = pd.to_datetime(times, unit="D", origin=start_date)
-        return dates
+        return pd.to_datetime(times, unit="D", origin=start_date)
+
+    def to_date(self, time: float) -> pd.Timestamp:
+        """
+        Convert a single instant to the corresponding datetime
+        """
+        return pd.to_datetime(time - self.time, unit="D", origin=self.date)
 
     def to_days(self, dates: Sequence, start_date=None) -> np.ndarray:
         """

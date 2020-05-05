@@ -2,6 +2,7 @@ from abc import ABCMeta
 from typing import Tuple
 
 import sidekick as sk
+from ..params import ParamsInfo
 
 
 class ModelMeta(ABCMeta):
@@ -17,6 +18,7 @@ class ModelMeta(ABCMeta):
         super().__init__(name, bases, ns)
         meta_kwargs = meta_arguments(bases, meta)
         cls._meta = Meta(cls, **meta_kwargs)
+        cls.params_info = ParamsInfo(cls)
 
 
 class Meta:
@@ -34,7 +36,7 @@ class Meta:
     def __init__(self, cls, **kwargs):
         self.cls = cls
         self.explicit_kwargs = kwargs
-        self.params = ParamsInfo(self)
+        self.params = ParamsInfoSubspace(self)
         for k, v in kwargs.items():
             if "__" in k:
                 ns, _, tail = k.partition("__")
@@ -108,7 +110,7 @@ class SubNamespaceView:
             raise AttributeError(attr)
 
 
-class ParamsInfo(SubNamespaceView):
+class ParamsInfoSubspace(SubNamespaceView):
     """
     Object that holds information about parameters.
     """

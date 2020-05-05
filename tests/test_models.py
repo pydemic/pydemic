@@ -1,3 +1,4 @@
+import re
 from typing import Type
 
 import numpy as np
@@ -122,6 +123,45 @@ class TestInfectiousModels(ModelTester):
         assert all(H <= c)
 
 
+class TestGetitemInteface:
+    def test_transforms(self):
+        m = models.SIR(R0=3, infectious_period=0.5, run=10, date="1970-01-01")
+
+        I = m["I"]
+        first, last = I.iloc[[0, -1]]
+        assert_series_equal(m["infectious"], I)
+        assert_series_equal(m["infectious:int"], m["I:int"])
+
+        # Type conversions
+        assert m["I:int"].dtype == int
+        assert m["I:round"].dtype == int
+        assert m["I:int:max"] >= 250_000
+        assert_pattern(r"\d+", m["I:round"])
+        assert_pattern(r"\d+\.\d", m["I:round1"])
+        assert_pattern(r"\d+\.\d{1,2}", m["I:round2"])
+        assert_pattern(r"\d+\.\d{1,3}", m["I:round3"])
+
+        # Simple transforms
+        assert m["I:initial"] == first
+        assert m["I:final"] == last
+        assert m["I:max"] >= 250_000
+        assert m["I:min"] == 1.0
+        assert m["I:peak-time"] == 4.0
+        assert m["I:peak-date"] == pd.to_datetime("1970-01-05")
+        assert type(m["I:np"]) is np.ndarray
+        assert m["I:np:min"] == 1.0
+        assert m["I:str:initial"] == "1.0"
+
+        # Rate conversions
+        assert (m["I:pp"] <= 1).all()
+        assert (m["I:ppc"] <= 100).all()
+        assert (m["I:p1k"] <= 1e3).all()
+        assert (m["I:p10k"] <= 1e4).all()
+        assert (m["I:p100k"] <= 1e5).all()
+        assert (m["I:p1m"] <= 1e6).all()
+        assert m["I:ppc:max"] >= 25
+
+
 class TestSIR:
     def test_basic_esir_api(self):
         m = models.eSIR()
@@ -133,3 +173,12 @@ class TestSIR:
         assert abs(m.K - m.gamma * 1.74) <= 1e-6
         assert m.iter == len(m.data) == len(m.times) == len(m.dates)
         assert np.abs(res / ok - 1).max() < 1e-4
+
+
+def assert_pattern(regex, data):
+    pattern = re.compile(regex)
+    check = pattern.fullmatch
+    for i, x in enumerate(data):
+        if check(str(x)) is None:
+            msg = f"invalid pattern found in pos {i}: {x!r}"
+            raise AssertionError(msg)
