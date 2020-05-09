@@ -10,8 +10,9 @@ class Clinical:
         self._model = model
 
     def __call__(self, *args, **kwargs):
-        cls = getattr(self._model, "clinical_model", cm.CrudeFR)
-        return self.clinical_model(cls, *args, **kwargs)
+        cls = self._model.clinical_model or cm.CrudeFR
+        params = {**self._model.clinical_params, **kwargs}
+        return self.clinical_model(cls, *args, **params)
 
     def clinical_model(self, cls, *args, **kwargs):
         """
@@ -19,15 +20,22 @@ class Clinical:
         """
         return cls(self._model, *args, **kwargs)
 
-    def crude(self, *args, **kwargs):
+    def crude_model(self, *args, **kwargs):
         """
         Create a clinical model from model infectious model instance.
         """
         return self.clinical_model(cm.CrudeFR, *args, **kwargs)
 
-    def hospitalization_with_delay(self, *args, **kwargs):
+    def delay_model(self, *args, **kwargs):
         """
-        A simple clinincal model in which hospitalization occurs with some
+        A simple clinical model in which hospitalization occurs with some
         fixed delay.
         """
         return self.clinical_model(cm.HospitalizationWithDelay, *args, **kwargs)
+
+    def overflow_model(self, *args, **kwargs):
+        """
+        A clinical model that considers the overflow of a healthcare system
+        in order to compute the total death toll.
+        """
+        return self.clinical_model(cm.HospitalizationWithOverload, *args, **kwargs)

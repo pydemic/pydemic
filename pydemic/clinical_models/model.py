@@ -35,6 +35,9 @@ class ClinicalModel(Model, ABC):
         self.infection_model = infection_model
         super().__init__(*args, **kwargs)
 
+    def __getattr__(self, item):
+        return getattr(self.infection_model, item)
+
     #
     # Data accessors
     #
@@ -46,34 +49,133 @@ class ClinicalModel(Model, ABC):
             return self.infection_model.get_data(name)
 
     # Basic columns
+    def get_data_population(self):
+        """
+        Total population minus deaths.
+        """
+        return self.infection_model["population"] - self["deaths"]
+
     def get_data_infectious(self):
+        """
+        Infectious population according to infectious model.
+
+        This is usually the starting point of all clinical models.
+        """
         return self.infection_model["infectious"]
 
+    def get_data_cases(self):
+        """
+        Cumulative curve of cases.
+
+        A case is typically defined as an individual who got infected AND
+        developed recognizable clinical symptoms.
+        """
+        return self.infection_model["cases"]
+
     def get_data_infected(self):
+        """
+        Cumulative curve of infected individuals.
+
+        Infected individuals might not develop clinical symptoms. They may never
+        develop symptoms (asymptomatic) or develop them in a future time.
+        """
         try:
             return self.infection_model["infected"]
         except KeyError:
-            return self.infection_model["cases"]
-
-    def get_data_cases(self):
-        return self.infection_model["cases"]
+            return self["cases"]
 
     # Derived methods
     def get_data_empirical_CFR(self):
+        """
+        Empirical CFR computed as current deaths over cases.
+        """
         return (self["deaths"] / self["cases"]).fillna(0.0)
 
     def get_data_empirical_IFR(self):
+        """
+        Empirical IFR computed as current deaths over infected.
+        """
         return (self["deaths"] / self["infected"]).fillna(0.0)
 
     # Abstract interface
+    def get_data_death_rate(self):
+        """
+        Daily number of deaths.
+        """
+        return self["deaths"].diff().fillna(0)
+
     def get_data_deaths(self):
+        """
+        Cumulative curve of deaths.
+        """
         raise NotImplementedError("must be implemented in sub-classes")
 
-    def get_data_hospitalizations(self):
+    def get_data_severe(self):
+        """
+        Current number of severe cases.
+
+        Severe cases usually require hospitalization, but have a low death risk.
+        """
+        raise NotImplementedError("must be implemented in sub-classes")
+
+    def get_data_severe_cases(self):
+        """
+        Cumulative number of severe cases.
+
+        Severe cases usually require hospitalization, but have a low death risk.
+        """
+        raise NotImplementedError("must be implemented in sub-classes")
+
+    def get_data_critical(self):
+        """
+        Current number of critical cases.
+
+        Critical cases require intensive care and are at a high risk of death.
+        """
+        raise NotImplementedError("must be implemented in sub-classes")
+
+    def get_data_critical_cases(self):
+        """
+        Cumulative number of critical cases.
+
+        Critical cases require intensive care and are at a high risk of death.
+        """
         raise NotImplementedError("must be implemented in sub-classes")
 
     def get_data_hospitalized(self):
-        raise NotImplementedError("must be implemented in sub-classes")
+        """
+        Cases currently occupying a hospital bed.
+
+        In an ideal world, this would be equal to the number of severe cases.
+        The default implementation assumes that.
+        """
+        return self["severe"]
+
+    def get_data_hospitalized_cases(self):
+        """
+        Cumulative number of hospitalizations.
+
+        Default implementation assumes equal to the number of severe cases.
+        """
+        return self["severe_cases"]
+
+    def get_data_icu(self):
+        """
+        Number of ICU patients.
+
+        In an ideal world, this would be equal to the number of critical cases.
+        The default implementation assumes that.
+        Default implementation assumes equal to the number of critical cases.
+        """
+        return self["critical"]
+
+    def get_data_icu_cases(self):
+        """
+        Cumulative number of ICU patients.
+
+        Default implementation assumes equal to the number of critical cases.
+        """
+        return self["critical_cases"]
 
     #
     # Other functions

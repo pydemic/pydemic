@@ -1,3 +1,4 @@
 from .model import ClinicalModel
-from .hospitalization_with_delay import HospitalizationWithDelay
 from .crude_FR import CrudeFR
+from .hospitalization_with_delay import HospitalizationWithDelay
+from .hospitalization_with_overload import HospitalizationWithOverload
