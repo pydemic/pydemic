@@ -2,11 +2,13 @@ import locale
 
 import pytest
 
-from covid.utils import fmt
+from pydemic import utils
 
 
 class TestUtilityFunctions:
     def test_format_functions_en_US(self):
+        fmt = utils.fmt
+
         try:
             locale.setlocale(locale.LC_ALL, "en_US.UTF-8")
         except locale.Error:
@@ -37,6 +39,7 @@ class TestUtilityFunctions:
         assert fmt(1_234_567_000) == "1.23B"
 
     def test_format_functions_pt_BR(self):
+        fmt = utils.fmt
         try:
             locale.setlocale(locale.LC_ALL, "pt_BR.UTF-8")
         except locale.Error:
@@ -65,3 +68,11 @@ class TestUtilityFunctions:
         assert fmt(-12_341_000) == "-12,34M"
         assert fmt(123_456_000) == "123,5M"
         assert fmt(1_234_567_000) == "1,23B"
+
+
+class TestSequenceFunctions:
+    def test_flatten_and_unflatten_dict(self):
+        flat = {"foo.bar.bat": 2, "foo.bar.baz": 1, "foo.bot": 3}
+        nested = {"foo": {"bar": {"baz": 1, "bat": 2}, "bot": 3}}
+        assert utils.flatten_dict(nested) == flat
+        assert utils.unflatten_dict(flat) == nested

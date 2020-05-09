@@ -6,7 +6,7 @@ import pandas as pd
 import pytest
 from pandas.testing import assert_series_equal
 
-from pydemic import clinical_models
+from pydemic.clinical_models import CrudeFR, HospitalizationWithDelay
 from pydemic import models
 
 MODEL_CLASSES = [
@@ -105,11 +105,9 @@ class TestInfectiousModels(ModelTester):
         h = m.clinical()
         assert h.empirical_CFR < m.exposed
         assert h.empirical_IFR < m.exposed
-        assert isinstance(h, clinical_models.CrudeFR)
-        assert type(h) == type(m.clinical.crude())
-        assert isinstance(
-            m.clinical.hospitalization_with_delay(), clinical_models.HospitalizationWithDelay
-        )
+        assert isinstance(h, CrudeFR)
+        assert type(h) == type(m.clinical.crude_model())
+        assert isinstance(m.clinical.delay_model(), HospitalizationWithDelay)
 
     def test_clinical_model_basic_api(self, m):
         m.run(10)
@@ -117,7 +115,7 @@ class TestInfectiousModels(ModelTester):
         c = cm["cases"]
         d = cm["deaths"]
         h = cm["hospitalized"]
-        H = cm["hospitalizations"]
+        H = cm["hospitalized_cases"]
         assert all(h <= H)
         assert all(d <= H)
         assert all(H <= c)

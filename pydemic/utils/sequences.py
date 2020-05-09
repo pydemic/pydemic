@@ -12,3 +12,37 @@ def rpartition(seq, n):
             new.append(seq.pop())
         out.append(new[::-1])
     return out[::-1]
+
+
+def flatten_dict(dic: dict, prefix="", sep=".") -> dict:
+    """
+    Flatten a nested dictionary into a flat dictionary with dotted namespace.
+    """
+
+    out = {}
+    for k, v in dic.items():
+        k = f"{prefix}{k}"
+        if isinstance(v, dict):
+            out.update(flatten_dict(v, f"{k}{sep}"))
+        else:
+            out[k] = v
+    return out
+
+
+def unflatten_dict(dic: dict, sep=".") -> dict:
+    """
+    Invert the effect of :func:`flatten_dict`
+    """
+
+    items = list(reversed(dic.items()))
+    out = {}
+    while items:
+        k, v = items.pop()
+        *keys, last_key = k.split(sep)
+
+        d = out
+        for k in keys:
+            d = d.setdefault(k, {})
+        d[last_key] = v
+
+    return out

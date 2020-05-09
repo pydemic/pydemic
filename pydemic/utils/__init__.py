@@ -10,6 +10,6 @@ from .properties import (
     param_alias,
     inverse_transform,
 )
-from .sequences import rpartition
+from .sequences import rpartition, flatten_dict, unflatten_dict
 
 not_implemented = lambda *args: _sk.error(NotImplementedError)
