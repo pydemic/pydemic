@@ -1,6 +1,8 @@
 import datetime
+from types import MappingProxyType
 from typing import Sequence, Callable
 
+import mundi_demography
 import numpy as np
 import pandas as pd
 import sidekick as sk
@@ -46,6 +48,48 @@ class Model(WithParams, metaclass=ModelMeta):
 
     # Special accessors
     clinical = property(Clinical)
+    clinical_model = None
+    clinical_params = MappingProxyType({})
+
+    @sk.lazy
+    def age_distribution(self):
+        if "age_pyramid" in self.__dict__:
+            return self.age_pyramid.sum(1)
+        try:
+            region = self.region
+        except RuntimeError:
+            raise RuntimeError(
+                "Could not determine the age_distribution for population.\n"
+                "Model must be initialized with either an explicit age_distribution\n"
+                "or with some specific region code."
+            )
+        else:
+            return mundi_demography.age_distribution(region)
+
+    @sk.lazy
+    def age_pyramid(self):
+        try:
+            region = self.region
+        except RuntimeError:
+            raise RuntimeError(
+                "Could not determine the age_distribution for population.\n"
+                "Model must be initialized with either an explicit age_pyramid\n"
+                "or with some specific region code."
+            )
+        else:
+            data = mundi_demography.age_pyramid(region)
+        if data.isna().values.all():
+            col = self.age_distribution
+            males = col // 2
+            females = col - males
+            return pd.DataFrame({"male": males, "female": females})
+        else:
+            return data
+
+    @sk.lazy
+    def region(self):
+        msg = "Model must be initialized with an explicit region code."
+        raise RuntimeError(msg)
 
     @classmethod
     def create(cls, params=None):
@@ -53,17 +97,23 @@ class Model(WithParams, metaclass=ModelMeta):
         new.set_params(params)
         return new
 
-    def __init__(self, params=None, *, run=None, name=None, date=None, **kwargs):
+    def __init__(self, params=None, *, run=None, name=None, date=None, clinical=None, **kwargs):
         WithParams.__init__(self, params)
         self.name = name or f"{type(self).__name__} model"
         self.date = pd.to_datetime(date or today())
         self.set_ic()
         self.data = make_dataframe(self)
 
+        if clinical:
+            clinical = dict(clinical)
+            self.clinical_model = clinical.pop("model", None)
+            self.clinical_params = clinical
+
         for k, v in kwargs.items():
+            cls = type(self)
             if k in self._meta.params.all:
                 self.set_param(k, v)
-            elif hasattr(self, k):
+            elif hasattr(cls, k):
                 setattr(self, k, v)
             else:
                 raise TypeError(f"invalid argument: {k}")
@@ -127,6 +177,8 @@ class Model(WithParams, metaclass=ModelMeta):
         Return a data column with the given name.
         """
 
+        name = name.replace("-", "_")
+
         # Specialized data getter methods take precedence
         try:
             method = getattr(self, f"get_data_{name}")
@@ -187,6 +239,63 @@ class Model(WithParams, metaclass=ModelMeta):
 
         except KeyError:
             raise ValueError(f"Invalid transform: {name}")
+
+    def get_data_population(self):
+        """
+        Return current population.
+        """
+        return self.data.sum(1)
+
+    def get_info(self, info):
+        """
+        Query information about model.
+        """
+        name, _, args = info.partition(":")
+        try:
+            method = getattr(self, f"get_info_{name}")
+        except AttributeError:
+            raise ValueError(f"invalid info name: {name}")
+        return method(args)
+
+    def get_info_demography(self, arg):
+        """
+        Retrieve demographic parameters about the population.
+        """
+        if arg == "population":
+            return self.data.iloc[0].sum()
+        elif arg == "age_distribution":
+            return self.age_distribution
+        elif arg == "age_pyramid":
+            return self.age_pyramid
+        elif arg == "seniors":
+            return self.age_distribution.loc[60:].sum()
+        else:
+            raise ValueError(f"unknown argument: {arg!r}")
+
+    def get_info_demography(self, arg):
+        """
+        Retrieve demographic parameters about the population.
+        """
+        if arg == "population":
+            return self.data.iloc[0].sum()
+        elif arg == "age_distribution":
+            return self.age_distribution
+        elif arg == "age_pyramid":
+            return self.age_pyramid
+        elif arg == "seniors":
+            return self.age_distribution.loc[60:].sum()
+        else:
+            raise ValueError(f"unknown argument: {arg!r}")
+
+    def get_info_healthcare(self, arg):
+        """
+        Return info about the healthcare system.
+        """
+        if arg == "icu_total_capacity":
+            return 4 * self.icu_capacity
+        elif arg == "hospital_total_capacity":
+            return 4 * self.hospital_capacity
+        raise NotImplementedError
 
     #
     # Running simulation
@@ -275,7 +384,17 @@ class Model(WithParams, metaclass=ModelMeta):
     #
     # Plotting and showing information
     #
-    def plot(self, components=None, *, ax=None, log=True, show=False, dates=False, legend=True):
+    def plot(
+        self,
+        components=None,
+        *,
+        ax=None,
+        log=False,
+        show=False,
+        dates=False,
+        legend=True,
+        grid=True,
+    ):
         """
         Plot the result of simulation.
         """
@@ -291,9 +410,11 @@ class Model(WithParams, metaclass=ModelMeta):
         components = self.DATA_ALIASES.values() if components is None else components
         for col in components:
             data = get_column(col)
-            data.plot(label=col.title(), **kwargs)
+            data.plot(label=col.title().replace("-", " ").replace("_", " "), **kwargs)
         if legend:
             ax.legend()
+        if grid:
+            ax.grid()
 
         if show:
             plt.show()

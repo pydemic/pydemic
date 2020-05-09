@@ -27,7 +27,7 @@ def peak_time(model, col):
     Time with the largest value of col.
     """
     idx = np.argmax(model[col])
-    return model.data.index[idx]
+    return model.times[idx]
 
 
 def to_dataframe(model, col):

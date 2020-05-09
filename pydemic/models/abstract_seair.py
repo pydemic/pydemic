@@ -20,7 +20,7 @@ class AbstractSEAIR(Base, ABC):
 
     # Basic epidemiological parameters
     rho = param_property("rho")
-    prob_symptomatic = param_property("prob_symptomatic")
+    prob_symptomatic = param_property("prob_symptomatic", default=1.0)
     qs = sk.alias("prob_symptomatic")
 
     # Derived expressions

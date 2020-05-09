@@ -1,5 +1,7 @@
 from ..packages import sk
 
+NOT_GIVEN = object()
+
 
 class state_property(property):
     """
@@ -25,12 +27,18 @@ class param_property(property):
     is_param = True
     is_derived = False
 
-    def __init__(self, name=None, ro=False):
+    def __init__(self, name=None, ro=False, default=NOT_GIVEN):
         self.name = name
+        self.default = default
         prop = self
 
         def fget(self):
-            return self._params[prop.name].value
+            try:
+                return self._params[prop.name].value
+            except KeyError:
+                if self.default is NOT_GIVEN:
+                    raise AttributeError
+                return self.default
 
         def fset(self, value):
             self.set_param(prop.name, value)
