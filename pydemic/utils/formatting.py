@@ -123,3 +123,16 @@ def slugify(st, suffixes=(), prefixes=()):
         regex = "|".join(map(re.escape, prefixes))
         re.sub(fr"^{regex}", "", st)
     return st
+
+
+def safe_int(x, default=0):
+    """
+    Convert float to int, with a fallback value or NaNs and Infs.
+    """
+
+    try:
+        return int(x)
+    except ValueError:
+        if not np.isfinite(x):
+            return default
+        raise

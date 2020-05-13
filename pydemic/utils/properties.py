@@ -28,20 +28,25 @@ class param_property(property):
     is_derived = False
 
     def __init__(self, name=None, ro=False, default=NOT_GIVEN):
+        if callable(default):
+            default = sk.extract_function(default)
+
         self.name = name
         self.default = default
-        prop = self
+        param = self
 
         def fget(self):
             try:
-                return self._params[prop.name].value
+                return self._params[param.name].value
             except KeyError:
-                if self.default is NOT_GIVEN:
-                    raise AttributeError
-                return self.default
+                if param.default is NOT_GIVEN:
+                    name = type(self).__name__
+                    raise AttributeError(f"{name} has no {param.name!r} attribute")
+                value = param.default
+                return value(self) if callable(value) else value
 
         def fset(self, value):
-            self.set_param(prop.name, value)
+            self.set_param(param.name, value)
 
         args = (fget,) if ro else (fget, fset)
         super().__init__(*args)
@@ -58,21 +63,28 @@ class param_transform(property):
     is_param = True
     is_derived = True
 
-    def __init__(self, prop, read, write=None):
+    def __init__(self, prop_name, read, write=None):
         read = sk.extract_function(read)
+        param = self
+
         if write is not None:
             write = sk.extract_function(write)
 
         def fget(self):
             try:
-                value = self._params[prop].value
+                value = self._params[prop_name].value
             except KeyError:
-                value = self.get_param(prop)
-            return read(value)
+                value = self.get_param(prop_name)
+            try:
+                return read(value)
+            except Exception as e:
+                cls = type(e).__name__
+                msg = f"error found when processing {prop_name!r}: {cls}{e}"
+                raise ValueError(msg)
 
         def fset(self, value):
             value = write(value)
-            self.set_param(prop, value)
+            self.set_param(prop_name, value)
 
         args = (fget,) if write else (fget, fset)
         super().__init__(*args)

@@ -46,3 +46,24 @@ def unflatten_dict(dic: dict, sep=".") -> dict:
         d[last_key] = v
 
     return out
+
+
+def extract_keys(keys, dic, drop=True):
+    """
+    Extract keys from dictionary and return a dictionary with the extracted
+    values.
+
+    If key is not included in the dictionary, it will also be absent from the
+    output.
+    """
+
+    out = {}
+    for k in keys:
+        try:
+            if drop:
+                out[k] = dic.pop(k)
+            else:
+                out[k] = dic[k]
+        except KeyError:
+            pass
+    return out
