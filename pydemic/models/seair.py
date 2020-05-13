@@ -17,15 +17,15 @@ class SEAIR(ODEModel, AbstractSEAIR):
         gamma = self.gamma
         sigma = self.sigma
         rho = self.rho
-        qs = self.qs
+        Qs = self.Qs
 
         infections = beta * s * ((i + rho * a) / n)
         return np.array(
             [
                 -infections,
                 +infections - sigma * e,
-                +(1 - qs) * sigma * e - gamma * a,
-                +qs * sigma * e - gamma * i,
+                +(1 - Qs) * sigma * e - gamma * a,
+                +Qs * sigma * e - gamma * i,
                 +gamma * (i + a),
             ]
         )

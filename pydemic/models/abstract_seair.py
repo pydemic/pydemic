@@ -17,11 +17,12 @@ class AbstractSEAIR(Base, ABC):
         "I": "infectious",
         "R": "recovered",
     }
+    model_name = "SEAIR"
 
     # Basic epidemiological parameters
-    rho = param_property("rho")
-    prob_symptomatic = param_property("prob_symptomatic", default=1.0)
-    qs = sk.alias("prob_symptomatic")
+    rho = param_property("rho", default=1.0)
+    prob_symptoms = param_property("prob_symptoms", default=1.0)
+    Qs = sk.alias("prob_symptoms", mutable=True)
 
     # Derived expressions
     @property
@@ -29,8 +30,8 @@ class AbstractSEAIR(Base, ABC):
         gamma = self.gamma
         R0 = self.R0
         rho = self.rho
-        qs = self.qs
-        return gamma * R0 / (qs + (1 - qs) * rho)
+        Qs = self.Qs
+        return gamma * R0 / (Qs + (1 - Qs) * rho)
 
     # Simulation state
     susceptible = state_property(0)
@@ -39,6 +40,11 @@ class AbstractSEAIR(Base, ABC):
     infectious = state_property(3)
     recovered = state_property(4)
 
-    def set_ic(self, vector=(1e6 - 1, 1, 0, 0, 0), **kwargs):
-        vector = np.array(vector, dtype=float)
-        super().set_ic(vector, **kwargs)
+    def _initial_state(self):
+        return np.array((self.population - 1, 1, 0, 0, 0), dtype=float)
+
+    def get_data_force(self):
+        I = self["infectious"]
+        A = self["asymptomatic"]
+        N = self["N"]
+        return self.beta * (I + self.rho * A) / N

@@ -1,9 +1,10 @@
 import numpy as np
+from sidekick import X
 
 from .abstract_sir import AbstractSIR as Base
 from .. import params
 from ..formulas import K, R0_from_K
-from ..utils import state_property, param_property
+from ..utils import state_property, param_property, param_transform
 
 
 class AbstractSEIR(Base):
@@ -12,11 +13,12 @@ class AbstractSEIR(Base):
     """
 
     DATA_ALIASES = {"S": "susceptible", "E": "exposed", "I": "infectious", "R": "recovered"}
+    model_name = "SEIR"
 
     # Basic epidemiological parameters
     params = params.epidemic.DEFAULT
-    sigma = param_property("sigma")
-    incubation_period = param_property("incubation_period")
+    sigma = param_transform("incubation_period", (1 / X), (1 / X))
+    incubation_period = param_property("incubation_period", default=1.0)
 
     # Derived expressions
     @property
@@ -33,6 +35,8 @@ class AbstractSEIR(Base):
     infectious = state_property(2)
     recovered = state_property(3)
 
-    def set_ic(self, vector=(1e6 - 1, 1, 0, 0), **kwargs):
-        vector = np.array(vector, dtype=float)
-        super().set_ic(vector, **kwargs)
+    def _initial_state(self):
+        return np.array((self.population - 1, 1, 0, 0), dtype=float)
+
+    def _initial_infected(self):
+        return super().extrapolate_cases("exposed")
