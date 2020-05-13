@@ -18,12 +18,7 @@ class EpidemicParams(Params):
 # Epidemiological parameters
 #
 EPIDEMIC_DEFAULT = ep = EpidemicParams(
-    "Default",
-    R0=2.74,
-    rho=0.55,
-    prob_symptomatic=0.14,
-    incubation_period=3.69,
-    infectious_period=3.47,
+    "Default", R0=2.74, rho=0.55, prob_symptoms=0.14, incubation_period=3.69, infectious_period=3.47
 )
 
 epidemic = SimpleNamespace(

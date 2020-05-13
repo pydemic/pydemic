@@ -195,7 +195,7 @@ def get_param(name: str, params: ParamLike, default: Real = None) -> Real:
         return params[name]
     except (KeyError, TypeError):
         if default is None:
-            raise ValueError("Parameter not found and no default was given")
+            raise ValueError(f"Parameter '{name}' not found and no default was given")
         return default
 
 
