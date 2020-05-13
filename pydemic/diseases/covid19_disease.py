@@ -1,4 +1,5 @@
-from .disease import Disease, lazy_stored_string
+from .disease import Disease
+from .utils import lazy_stored_string
 
 
 class Covid19(Disease):
@@ -24,3 +25,33 @@ class Covid19(Disease):
         from .covid19_api import epidemic_curve
 
         return epidemic_curve(region, api, **kwargs)
+
+    def R0(self, **kwargs):
+        return 2.74
+
+    def rho(self, **kwargs):
+        return 0.45
+
+    def prob_critical(self, **kwargs):
+        return self.CFR(**kwargs) / 0.49
+
+    def icu_period(self, **kwargs):
+        return 7.5
+
+    def hospitalization_period(self, **kwargs):
+        return 7.0
+
+    def critical_delay(self, **kwargs):
+        return 1.0
+
+    def severe_delay(self, **kwargs):
+        return 5.0  # FIXME: find reference
+
+    def hospitalization_overflow_bias(self, **kwargs):
+        return 0.25
+
+    def infectious_period(self, **kwargs):
+        return 3.47
+
+    def incubation_period(self, **kwargs):
+        return 3.69

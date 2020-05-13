@@ -17,14 +17,14 @@ def epidemic_curve(region, api="auto", extra=False, **kwargs):
     """
     Universal interface to all epidemic curve loaders.
 
-    Always return a dataframe with ["cases", "fatalities"] columns for the given
+    Always return a dataframe with ["cases", "deaths"] columns for the given
     region. Some API's may offer additional columns such as "recovered", "test"
     etc.
     """
     code = mundi.code(region)
     fn = EPIDEMIC_CURVES_APIS[api]
     data = fn(code, **kwargs)
-    return data if extra else data[["cases", "fatalities"]]
+    return data if extra else data[["cases", "deaths"]]
 
 
 @register_api("auto")
@@ -45,15 +45,13 @@ def auto_api(code, **kwargs):
 @sk.retry(10, sleep=0.5)
 def corona_api(code) -> pd.DataFrame:
     """
-    Load country's cases, fatalities and recovered timeline from corona-api.com.
+    Load country's cases, deaths and recovered timeline from corona-api.com.
     """
     url = "http://corona-api.com/countries/{code}?include=timeline"
     response = requests.get(url.format(code=code))
     data = response.json()
-    df = pd.DataFrame(data["data"]["timeline"]).rename(
-        {"confirmed": "cases", "deaths": "fatalities"}, axis=1
-    )
-    df = df[["date", "cases", "fatalities", "recovered"]]
+    df = pd.DataFrame(data["data"]["timeline"]).rename({"confirmed": "cases"}, axis=1)
+    df = df[["date", "cases", "deaths", "recovered"]]
     df.index = pd.to_datetime(df.pop("date"))
     df = df[df.fillna(0).sum(1) > 0]
     return df.sort_index()
@@ -79,8 +77,7 @@ def brasil_io_cases():
     cols = {
         "last_available_confirmed": "cases",
         "confirmed": "cases",
-        "last_available_deaths": "fatalities",
-        "deaths": "fatalities",
+        "last_available_deaths": "deaths",
         "city_ibge_code": "code",
     }
 
@@ -93,7 +90,7 @@ def brasil_io_cases():
 
     cases["date"] = pd.to_datetime(cases["date"])
 
-    cases = cases[["date", "code", "cases", "fatalities"]]
+    cases = cases[["date", "code", "cases", "deaths"]]
     return cases.dropna().reset_index(drop=True)
 
 
