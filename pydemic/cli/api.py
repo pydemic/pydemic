@@ -14,7 +14,7 @@ import numpy as np
 @click.option("--grid", "-g", is_flag=True, help="Add grid to the graph")
 def covid19_api_downloader(code, api, output, plot, log, daily, grid):
     """
-    Load data of COVID-19 cases and fatalities.
+    Load data of COVID-19 cases and deaths.
     """
     from pydemic.diseases.covid19_api import epidemic_curve
 
