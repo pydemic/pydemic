@@ -8,7 +8,7 @@ from .smoothing import smoothed_diff
 def time_dependent_K(cases: pd.Series, method="smoothing", **kwargs):
     """
     Compute a time-dependent exponential growth factor from the given times
-    series of cases, fatalities or some strongly correlated proxy.
+    series of cases, deaths or some strongly correlated proxy.
 
     Args:
         cases:
