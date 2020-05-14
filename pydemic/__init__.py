@@ -3,7 +3,7 @@ Pydemic
 
 Epidemiological calculator tuned specifically for COVID-19.
 """
-__version__ = "0.1.1"
+__version__ = "0.1.3"
 __author__ = "Fábio Mendes"
 
 from . import models

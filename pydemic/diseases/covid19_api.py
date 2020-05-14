@@ -34,12 +34,11 @@ def auto_api(code, **kwargs):
     """
     Select best API to load according to region code.
     """
-    if len(code) == 2:
-        return corona_api(code, **kwargs)
-    elif code.startswith("BR-"):
+    if code == "BR" or code.startswith("BR-"):
         return brasil_io(code)
-    else:
-        raise ValueError(f"no API can load region with code: {code}")
+    elif len(code) == 2:
+        return corona_api(code, **kwargs)
+    raise ValueError(f"no API can load region with code: {code}")
 
 
 @register_api("corona-api.com")

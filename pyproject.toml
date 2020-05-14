@@ -10,8 +10,6 @@ author-email = "fabiomacedomendes@gmail.com"
 home-page = "http://github.com/pydemic/pydemic"
 classifiers = [ "License :: OSI Approved :: MIT License" ]
 requires = [
-  "pydemic-jupyter",
-  "pydemic-plots",
   "mundi",
   "mundi-demography",
   "mundi-healthcare",
