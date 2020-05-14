@@ -14,7 +14,7 @@ requires = [
   "pydemic-plots",
   "mundi",
   "mundi-demography",
-  "mundi-contact-matrix",
+  "mundi-healthcare",
   "joblib",
   "click~=7.0",
   "matplotlib~=3.0",
