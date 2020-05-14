@@ -1,8 +1,8 @@
-=======
-Pydemic
-=======
+==============
+Pydemic Models
+==============
 
-The Pydemic project implements several tools that help simulating and understanding epidemic outbreaks.
+The Pydemic Models project implements several tools that help simulating and understanding epidemic outbreaks.
 The main focus right now is modelling COVID-19, and it integrates with databases with relevant
 demographic and epidemiological information from many countries in the world.
 
@@ -13,7 +13,7 @@ a few new models such as SEAIR and SEICHAR. (yet to be published, we will link t
 Basic usage and installation
 ============================
 
-Install it with `pip install pydemic`. If you want to contribute to the project, clone this repository
+Install it with `pip install pydemic-models`. If you want to contribute to the project, clone this repository
 and install locally using `flit install -s`. If you do not have flit in your computer, install
 it using either your distribution package manager or `pip install flit --user` before continuing.
 
@@ -41,8 +41,8 @@ with closed form solutions, and are usually good approximations at the outset of
 The most simple of those, the linearized SIR model, has a simple exponential solution for the
 infectious compartment. Let us create a simple example, and show how it works on code.
 
->>> from pydemic.models import eSIR
->>> m = eSIR()
+>>> from pydemic.models import SIR
+>>> m = SIR()
 
 By default, it creates a model with a population of 1 and contaminated with a seed of 1
 infectious per million. We can simulate this scenario by calling the run(dt) method with
@@ -54,15 +54,15 @@ The results of the simulation are exposed as pandas dataframes and can be easily
 processed, plotted, and analyzed. The time series for any component of the model can be
 extracted using Python's indexing notation
 
->>> infectious_ts = m["infectious"]  # A Pandas data frame
->>> infectious_ts.plot()
+>>> infectious = m["infectious"]  # A Pandas data frame
+>>> infectious.plot()
 ...
 
 Pydemic uses a clever notation that allow us to make convenient transformations in the
 resulting components by simply appending the desired transformations after the
 component name.
 
->>> m["infectious:weeks"]  # A Pandas dataframe indexed by days instead of days
+>>> m["infectious:weeks"]  # A Pandas dataframe indexed by weeks instead of days
 ...
 
 It also recognizes the shorthand notation for each compartment and allows some advanced
@@ -95,4 +95,3 @@ reference used to assign the given point value, when available.
 
 >>> m.params.table()
 ...
-

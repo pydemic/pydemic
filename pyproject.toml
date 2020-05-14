@@ -4,7 +4,7 @@ build-backend = "flit.buildapi"
 
 [tool.flit.metadata]
 module = "pydemic"
-dist-name = "pydemic"
+dist-name = "pydemic-models"
 author = "Fábio Macêdo Mendes"
 author-email = "fabiomacedomendes@gmail.com"
 home-page = "http://github.com/pydemic/pydemic"

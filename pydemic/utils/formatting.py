@@ -2,6 +2,8 @@ import re
 from gettext import gettext as _
 from math import log10
 
+import numpy as np
+
 from .sequences import rpartition
 
 __all__ = ["fmt", "pc", "pm", "p10k", "indent"]

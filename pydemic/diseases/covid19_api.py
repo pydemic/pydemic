@@ -3,7 +3,9 @@ import requests
 import sidekick as sk
 
 import mundi
+from mundi import transforms
 from ..cache import tle_cache
+from ..logging import log
 
 HOURS = 3600
 EPIDEMIC_CURVES_APIS = {}
@@ -60,7 +62,7 @@ def corona_api(code) -> pd.DataFrame:
 @register_api("brasil.io")
 def brasil_io(code):
     cases = brasil_io_cases()
-    cases = cases[cases["code"] == code].drop(columns="code")
+    cases = cases[cases["id"] == code].drop(columns="id")
     cases = cases.drop_duplicates("date")
     return cases.set_index("date").sort_index()
 
@@ -72,6 +74,8 @@ def brasil_io_df() -> pd.DataFrame:
     return pd.read_csv(url)
 
 
+# @tle_cache("covid-19", timeout=12 * HOURS)
+@sk.lru_cache(1)
 def brasil_io_cases():
     df = brasil_io_df()
     cols = {
@@ -85,13 +89,29 @@ def brasil_io_cases():
     cases = cases[cases["code"].notna()]
 
     cases["code"] = cases["code"].apply(lambda x: str(int(x))).astype("string")
-    cases.loc[cases["place_type"] == "state", "code"] = cases["state"]
     cases["code"] = "BR-" + cases["code"]
 
     cases["date"] = pd.to_datetime(cases["date"])
+    cases = cases[cases["place_type"] == "city"]
 
     cases = cases[["date", "code", "cases", "deaths"]]
-    return cases.dropna().reset_index(drop=True)
+    cases = cases.dropna().reset_index(drop=True)
+    cases = cases.rename({"code": "id"}, axis=1)
+
+    log.info("Merging data from brasil.io")
+
+    result = {}
+    for col in ["cases", "deaths"]:
+        data = cases.pivot_table(index="id", columns="date", values=col).fillna(-1).sort_index()
+        data = transforms.sum_children(data).reset_index()
+        data = data.melt(id_vars=["id"], var_name="date", value_name=col)
+        data = data[data[col] >= 0]
+        result[col] = data
+    return (
+        pd.merge(*result.values(), on=["id", "date"], how="outer")
+        .fillna(0)
+        .astype({"cases": int, "deaths": int})
+    )
 
 
 if __name__ == "__main__":
