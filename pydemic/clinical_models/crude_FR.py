@@ -29,7 +29,6 @@ class CrudeFR(ClinicalObserverModel):
     """
 
     params = clinical.DEFAULT
-    growth_factor = sk.alias("K")
 
     # Primary parameters
     prob_severe: float = param_property(default=0.0)
@@ -57,8 +56,8 @@ class CrudeFR(ClinicalObserverModel):
 
     def get_data_severe(self):
         data = self["severe_cases"]
-        K = self.growth_factor
-        return delayed_with_discharge(data, 0, self.hospitalization_period, K)
+        K = max(self.K, 0)
+        return delayed_with_discharge(data, 0, self.hospitalization_period, K, positive=True)
 
     def get_data_severe_cases(self):
         return self["cases"] * self.Qsv

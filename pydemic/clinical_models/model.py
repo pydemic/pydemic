@@ -13,7 +13,7 @@ class ClinicalModel(Model, ABC):
     models the clinical history of patients.
     """
 
-    CLINICAL_COMPONENTS = ("hospitalizations", "hospitalized", "deaths")
+    CLINICAL_COMPONENTS = ("hospitalized_cases", "hospitalized", "deaths")
     DATA_ALIASES = {"H": "hospitalized", "D": "deaths"}
     model_name = "Clinical"
 
@@ -47,6 +47,7 @@ class ClinicalModel(Model, ABC):
             if k not in kwargs:
                 kwargs[k] = getattr(infection_model, k)
 
+        kwargs.setdefault("name", infection_model.name)
         super().__init__(*args, **kwargs)
 
     def __getattr__(self, item):
