@@ -5,7 +5,7 @@ from .config import memory
 from .types import Result
 
 
-def tle_cache(*fn_or_key, timeout=6 * 3600, **cache_kwargs):
+def ttl_cache(key, fn=None, *, timeout=6 * 3600, **cache_kwargs):
     """
     Decorator that creates a cached version of function that stores results
     in disk for the given timeout (in seconds).
@@ -19,7 +19,7 @@ def tle_cache(*fn_or_key, timeout=6 * 3600, **cache_kwargs):
         timeout.
 
     Examples:
-        >>> @tle_cache("my-cache", timeout=3600)
+        >>> @ttl_cache("my-cache", timeout=3600)
         ... def expensive_function(url):
         ...     # Some expensive function, possibly touching the internet...
         ...     response = requests.get(url)
@@ -31,14 +31,8 @@ def tle_cache(*fn_or_key, timeout=6 * 3600, **cache_kwargs):
         decorate multiple lambda functions or callable objects with no __name__
         attribute.
     """
-    if len(fn_or_key) == 2:
-        fn, key = fn_or_key
-    else:
-        fn = None
-        (key,) = fn_or_key
-
     if not fn:
-        return lambda f: tle_cache(f, key, timeout=timeout, **cache_kwargs)
+        return lambda f: ttl_cache(key, f, timeout=timeout, **cache_kwargs)
 
     mem = memory(key)
 
@@ -81,6 +75,6 @@ def simple_cache(*fn_or_key):
         (key,) = fn_or_key
 
     if not fn:
-        return lambda f: tle_cache(f, key)
+        return lambda f: ttl_cache(f, key)
 
     return memory(key).cache(fn)
