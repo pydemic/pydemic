@@ -38,6 +38,13 @@ class WrappedParams:
         except ValueError:
             raise AttributeError(item)
 
+    def __getstate__(self):
+        return self._wrapped, self._args, self._kwargs
+
+    def __setstate__(self, state):
+        self._wrapped, self._args, self._args = state
+        self._cache = {}
+
     def _fetch_param(self, name):
         """
         Obtain parameter with the given name and save result in cache.

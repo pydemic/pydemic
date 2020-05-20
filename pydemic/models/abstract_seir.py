@@ -1,4 +1,6 @@
 import numpy as np
+import pandas as pd
+from scipy import integrate
 from sidekick import X
 
 from .abstract_sir import AbstractSIR as Base
@@ -40,3 +42,15 @@ class AbstractSEIR(Base):
 
     def _initial_infected(self):
         return super().extrapolate_cases("exposed")
+
+    def get_data_cases(self):
+        # SEIR makes a distinction between "Infectious" and "Exposed". Different
+        # diseases may have different clinical evolutions, but it is reasonable
+        # to expect that in many situations, individuals only manifest symptoms
+        # after becoming infectious.
+        #
+        # We therefore changed the definition of "cases" in SEIR to be simply
+        # the number of elements that enter the "I" compartment.
+        E = self["exposed"]
+        res = integrate.cumtrapz(self.Qs * self.sigma * E, self.times, initial=0.0)
+        return pd.Series(res + self.initial_cases, index=E.index)

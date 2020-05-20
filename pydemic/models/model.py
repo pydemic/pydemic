@@ -1,4 +1,5 @@
 import datetime
+from copy import copy
 from types import MappingProxyType
 from typing import Sequence, Callable, Mapping
 
@@ -106,6 +107,91 @@ class Model(
         return self.name
 
     #
+    # Pickling and copying
+    #
+    def copy(self, **kwargs):
+        """
+        Copy instance possibly setting new values for attributes.
+
+        Keyword Args:
+            All keyword arguments are used to reset attributes in the copy.
+
+        Examples:
+            >>> m.copy(R0=1.0, name="Stable")
+            <SIR(name="Stable")>
+        """
+
+        cls = type(self)
+        data = self.__dict__.copy()
+        params = data.pop("_params")
+        results_data = data.pop("_results_data")
+
+        new = object.__new__(cls)
+        for k in list(kwargs):
+            if k in data:
+                data[k] = kwargs.pop(k)
+
+        new._params = copy(params)
+        new._results_data = {k: copy(v) for k, v in results_data}
+        new.__dict__.update(copy(data))
+
+        for k, v in kwargs.items():
+            setattr(new, k, v)
+
+        return new
+
+    def reset_data(self, date=None, **kwargs):
+        """
+        Return a copy of the model setting the state to the final state. If a
+        positional "date" argument is given, reset to the state to the one in the
+        specified date.
+
+        Args:
+            date (float or date):
+                An optional float or datetime selecting the desired date.
+
+        Keyword Args:
+            Additional keyword arguments are handled the same way as the
+            :method:`copy` method.
+        """
+        if date is None:
+            date = self.date
+            time = self.time
+
+        if isinstance(date, (float, int)):
+            time = date
+            date: pd.datetime = self.to_date(date)
+        else:
+            time: float = self.to_time(date)
+
+        kwargs["data"] = self.data.loc[[time]]
+        kwargs["date"] = date
+        kwargs["state"] = kwargs["data"].iloc[0].values
+        kwargs["time"] = 1
+        return self.copy(**kwargs)
+
+    def trim_dates(self, start=0, end=None):
+        """
+        Trim data in model to the given interval specified by start and end
+        dates or times.
+
+        Args:
+            start (int or date):
+                Starting date. If not given, start at zero.
+            end (int or date):
+                End date. If not given, select up to the final date.
+        """
+        start = int(start or 0)
+        end = int(end or self.time)
+        new = self.copy(
+            date=self.to_date(start),
+            data=self.data.iloc[start:end].reset_index(drop=True),
+            time=end - start,
+            state=self.data.iloc[end].values,
+        )
+        return new
+
+    #
     # Initial conditions
     #
     def set_ic(self, state=None, **kwargs):
@@ -123,6 +209,20 @@ class Model(
         for k, v in components.items():
             idx = self._meta.component_index(k)
             self.state[idx] = v
+
+    def set_data(self, data):
+        """
+        Force a dataframe into simulation state.
+        """
+        data = data.copy()
+        data.columns = [self.DATA_ALIASES.get(c, c) for c in data.columns]
+
+        self.set_ic(state=data.iloc[0])
+        self.data = data.reset_index(drop=True)
+        self.time = len(data) - 1
+        self.date = data.index[-1]
+        self.state[:] = data.iloc[-1]
+        self._initialized = True
 
     def initial_state(self, cases=None, **kwargs):
         """
@@ -193,7 +293,7 @@ class Model(
     #
     # Utility methods
     #
-    def to_dates(self, times: Sequence, start_date=None) -> pd.DatetimeIndex:
+    def to_dates(self, times: Sequence, start_date=None) -> Sequence[datetime.date]:
         """
         Convert an array of numerical times to dates.
 
@@ -213,13 +313,13 @@ class Model(
 
         return pd.to_datetime(times, unit="D", origin=start_date)
 
-    def to_date(self, time: float) -> pd.Timestamp:
+    def to_date(self, time: float) -> datetime.date:
         """
         Convert a single instant to the corresponding datetime
         """
         return pd.to_datetime(time - self.time, unit="D", origin=self.date)
 
-    def to_days(self, dates: Sequence, start_date=None) -> np.ndarray:
+    def to_times(self, dates: Sequence, start_date=None) -> np.ndarray:
         """
         Convert an array of numerical times to dates.
 
@@ -234,6 +334,14 @@ class Model(
             start_date = self.date - self.time * DAY
         data = [(date - start_date).days for date in dates]
         return np.array(data) if data else np.array([], dtype=int)
+
+    def to_time(self, date, start_date=None) -> float:
+        """
+        Convert date to time.
+        """
+        if start_date is None:
+            return self.to_time(date, self.date) - self.time
+        return float((date - start_date).days)
 
     #
     # Plotting and showing information
