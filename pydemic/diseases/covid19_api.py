@@ -4,7 +4,7 @@ import sidekick as sk
 
 import mundi
 from mundi import transforms
-from ..cache import tle_cache
+from ..cache import ttl_cache
 from ..logging import log
 
 HOURS = 3600
@@ -42,7 +42,7 @@ def auto_api(code, **kwargs):
 
 
 @register_api("corona-api.com")
-@tle_cache("covid-19", timeout=6 * HOURS)
+@ttl_cache("covid-19", timeout=6 * HOURS)
 @sk.retry(10, sleep=0.5)
 def corona_api(code) -> pd.DataFrame:
     """
@@ -66,17 +66,14 @@ def brasil_io(code):
     return cases.set_index("date").sort_index()
 
 
-@tle_cache("covid-19", timeout=12 * HOURS)
+@ttl_cache("covid-19", timeout=12 * HOURS)
 @sk.retry(10, sleep=0.5)
-def brasil_io_df() -> pd.DataFrame:
+def brasil_io_cases() -> pd.DataFrame:
+    """
+    Return the complete dataframe of cases and deaths from Brasil.io.
+    """
     url = "https://data.brasil.io/dataset/covid19/caso_full.csv.gz"
-    return pd.read_csv(url)
-
-
-# @tle_cache("covid-19", timeout=12 * HOURS)
-@sk.lru_cache(1)
-def brasil_io_cases():
-    df = brasil_io_df()
+    df = pd.read_csv(url)
     cols = {
         "last_available_confirmed": "cases",
         "confirmed": "cases",
