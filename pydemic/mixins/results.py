@@ -16,29 +16,28 @@ class Results:
     in the time series.
     """
 
-    __slots__ = ("_obj", "_data")
+    __slots__ = ("owner",)
 
     def __init__(self, obj):
-        self._obj = obj
-        self._data = {}
+        self.owner = obj
 
     def __getitem__(self, item):
         prefix, _, tail = item.partition(".")
 
         try:
-            return self._data[item]
+            return self.owner._results_data[item]
         except KeyError:
             pass
 
         if not tail:
-            return self._obj[f"{item}:final"]
+            return self.owner[f"{item}:final"]
         else:
             name = f"get_result_{prefix}"
-            if hasattr(self._obj, name):
-                method = getattr(self._obj, name)
+            if hasattr(self.owner, name):
+                method = getattr(self.owner, name)
                 return method(tail)
             else:
-                cls = type(self._obj).__name__
+                cls = type(self.owner).__name__
                 raise KeyError(f"{cls} object has no {item!r} result key.")
 
     def to_frame(self, which="summary") -> pd.DataFrame:

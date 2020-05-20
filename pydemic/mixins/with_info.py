@@ -12,11 +12,9 @@ class WithInfoMixin(ABC):
     about the simulation.
     """
 
-    info: Info
-
-    def __init__(self):
+    @property
+    def info(self) -> Info:
         info_class = getattr(self, "info_class", None)
         if info_class is None and hasattr(self, "_meta"):
             info_class = getattr(self._meta, "info_class", Info)
-
-        self.info = info_class(self)
+        return info_class(self)

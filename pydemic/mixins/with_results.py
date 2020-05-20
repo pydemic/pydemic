@@ -12,10 +12,12 @@ class WithSummaryMixin(ABC):
     evolution of the epidemic.
     """
 
-    results: Results
+    @property
+    def results(self) -> Results:
+        return Results(self)
 
     def __init__(self):
-        self.results = Results(self)
+        self._results_data = {}
 
     def get_result_dates(self, key):
         if key.startswith("peak_"):

@@ -35,7 +35,9 @@ class WithDataMixin(ABC):
             df = pd.DataFrame()
             for col in item:
                 series = self[col]
-                name = col.partition(":")[0]
+                series.name = name = col.partition(":")[0]
+                if name in df.columns:
+                    name = col
                 df[name] = series
             return df
 
