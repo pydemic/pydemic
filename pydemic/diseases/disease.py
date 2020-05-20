@@ -1,4 +1,5 @@
 import re
+import warnings
 from abc import ABC
 from pathlib import Path
 
@@ -7,6 +8,7 @@ import sidekick as sk
 from sidekick import X
 
 import mundi
+from pydemic.types import ImproperlyConfigured
 from .utils import (
     QualDataT,
     read_table,
@@ -68,20 +70,20 @@ class Disease(ABC):
         Return the mortality table of the disease.
 
         The mortality table is stratified by age and has at least two
-        columns, one with the CFR and other with the IFR.
+        columns, one with the CFR and other with the IFR per age group.
 
         Args:
             source (str):
-                Allow one to choose the source from that data if different
-                versions were collected by different teams or in different
-                scenarios. This argument is a string identifier for that version
-                of the data.
+                Select source/reference that collected this data. Different
+                datasets may be available representing the best knowledge by
+                different teams or assumptions about the disease. This argument
+                is a string identifier for that version of the data.
             qualified (bool):
                 If True, return a :cls:`Dataset` namedtuple with
                 (data, source, notes) attributes.
             extra (bool):
                 If True, display additional columns alongside with ["IRF", "CFR"].
-                The extra columns are variable for each dataset.
+                The extra columns can be different for each dataset.
         """
         df = self._read_dataset("mortality-table", source, qualified)
         return df if extra else df[["IFR", "CFR"]]
@@ -90,16 +92,29 @@ class Disease(ABC):
         self, source=None, qualified=False, extra=False, region=None
     ) -> QualDataT:
         """
-        Return the hospitalization table of the disease.
+        Return the hospitalization table of the disease. The hospitalization
+        table is stratified by age and has two columns: "severe" and "critical".
+        Each column represents the probability of developing either "severe"
+        (requires clinical treatment) or "critical" (requires ICU) cases.
 
-        This table is stratified by age and can have many columns
-        depending on the clinical progression of the disease. Typically, it will
-        feature a "severe" column for fraction of cases that should be
-        hospitalized. Some diseases present more detailed information about the
-        disease progression including "icu" admissions, need for "ventilators", etc.
+        In both cases, the probabilities are interpreted as the ratio between
+        hospitalization and cases, *excluding* asymptomatic individuals
+
+        Args:
+            source (str):
+                Select source/reference that collected this data. Different
+                datasets may be available representing the best knowledge by
+                different teams or assumptions about the disease. This argument
+                is a string identifier for that version of the data.
+            qualified (bool):
+                If True, return a :cls:`Dataset` namedtuple with
+                (data, source, notes) attributes.
+            extra (bool):
+                If True, display additional columns alongside with ["severe",
+                "critical"]. The extra columns can be different for each dataset.
         """
         df = self._read_dataset("hospitalization-table", source, qualified)
-        return df if extra else df[["severe"]]
+        return df if extra else df[["severe", "critical"]]
 
     def _read_dataset(self, which, source, qualified) -> QualDataT:
         """
@@ -215,7 +230,20 @@ class Disease(ABC):
 
         Estimated from "critical cases / symptomatic cases".
         """
-        return self._prob_from_hospitalization_table("critical", **kwargs)
+        try:
+            return self._prob_from_hospitalization_table("critical", **kwargs)
+        except KeyError:
+            pass
+        try:
+            return self.CFR(**kwargs) / self.icu_fatality_rate(**kwargs)
+        except RecursionError:
+            model = type(self).__name__
+            raise ImproperlyConfigured(
+                f"""
+{model} class must implement either prob_critical() or icu_fatality_rate()
+methods. Otherwise, the default implementation creates a recursion between both
+methods."""
+            )
 
     def _prob_from_hospitalization_table(self, col, **kwargs):
         """
@@ -310,6 +338,12 @@ class Disease(ABC):
         return 0.0
 
     # Delays
+    def symptom_delay(self, **kwargs):
+        """
+        Average duration between becoming infectious and symptom delay.
+        """
+        return 0.0
+
     def critical_delay(self, **kwargs) -> QualValueT:
         """
         Average duration between symptom onset and necessity of ICU admission.
@@ -322,18 +356,42 @@ class Disease(ABC):
         """
         return NotImplemented
 
+    def death_delay(self, **kwargs):
+        """
+        Average duration between symptom onset and necessity of hospital
+        admission.
+        """
+        return self.critical_delay(**kwargs) + self.icu_period(**kwargs)
+
     # Derived values
+    def gamma(self, **kwargs):
+        """
+        The inverse of infectious period.
+        """
+        return 1 / self.infectious_period(**kwargs)
+
+    def sigma(self, **kwargs):
+        """
+        The inverse of incubation period.
+        """
+        return 1 / self.incubation_period(**kwargs)
+
     def hospital_fatality_rate(self, **kwargs) -> QualValueT:
         """
         Probability of death once requires hospitalization.
         """
-        return self.CFR(**kwargs) / self.Qsv(**kwargs)
+        # FIXME: make properly age-stratified
+        return self.CFR(**kwargs) / self.prob_severe(**kwargs)
 
     def icu_fatality_rate(self, **kwargs) -> QualValueT:
         """
         Probability of death once requires intensive care.
+
+        The default implementation assumes that death occurs only after reaching
+        a critical state.
         """
-        return self.CFR(**kwargs) / self.Qcr(**kwargs)
+        # FIXME: make properly age-stratified
+        return self.CFR(**kwargs) / self.prob_critical(**kwargs)
 
     # Aliases
     def Qs(self, **kwargs) -> QualValueT:
@@ -437,8 +495,14 @@ class Disease(ABC):
             ("sigma", "incubation_period", (1 / X)),
         )
 
-        values = (getattr(self, m)(**kwargs) for m in methods)
-        out = {m: v for m, v in zip(methods, values) if values is not None}
+        out = {}
+        for method in methods:
+            try:
+                out[method] = getattr(self, method)(**kwargs)
+            except Exception as e:
+                name = type(e).__name__
+                warnings.warn(f"raised when calling disease.{method}():\n" f'    {name}: "{e}" ')
+                raise
 
         if alias:
             for k, v in aliases:

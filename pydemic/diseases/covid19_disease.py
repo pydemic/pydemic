@@ -32,22 +32,29 @@ class Covid19(Disease):
     def rho(self, **kwargs):
         return 0.45
 
-    def prob_critical(self, **kwargs):
-        return self.CFR(**kwargs) / 0.49
-
     def icu_period(self, **kwargs):
-        return 7.5
+        return 7.19
 
     def hospitalization_period(self, **kwargs):
-        return 7.0
+        return 10.0
 
     def critical_delay(self, **kwargs):
+        # FIXME: find reference.
+        # We estimated this parameter from anecdotal evidence from physicians
+        # that work in hospitals and non-official compilations of cases in
+        # Brazil.
+        #
+        # This parameter should be available in the literature, however.
         return 1.0
 
     def severe_delay(self, **kwargs):
-        return 5.0  # FIXME: find reference
+        return 3.3
 
     def hospitalization_overflow_bias(self, **kwargs):
+        # We do not have this parameter and it seems very unlikely that it will
+        # ever be measured directly. This correspond to the fraction of
+        # hospitalized cases that evolve to critical state in the absence of
+        # treatment *in excess* of the natural evolution of the disease.
         return 0.25
 
     def infectious_period(self, **kwargs):
