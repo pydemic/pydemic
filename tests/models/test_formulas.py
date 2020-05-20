@@ -1,7 +1,43 @@
+import pytest
 import sidekick as sk
 from numpy.testing import assert_almost_equal
+from sidekick import X, Y
 
-from pydemic.formulas import sir, seir, seair
+from pydemic.formulas import sir, seir, seair, formula
+
+
+class TestFormulaDecorator:
+    def test_positional(self):
+        @formula((), positional=1)
+        def fn(f, gamma, sigma):
+            return f(gamma, sigma)
+
+        assert fn((X + Y), gamma=1, sigma=2) == 3
+        assert fn((X + Y), {"gamma": 1, "sigma": 2}) == 3
+        assert fn((X + Y), {"gamma": 1, "sigma": 2, "R0": 3}) == 3
+        assert fn((X + Y), {"gamma": 1, "incubation_period": 0.5, "beta": 3}) == 3
+
+        with pytest.raises(TypeError):
+            fn((X + Y), gamma=1)
+
+        with pytest.raises(TypeError):
+            fn((X + Y), gamma=1, sigma=2, beta=3)
+
+    def test_options(self):
+        @formula((), positional=1, options=("power",))
+        def fn(f, gamma, sigma, power=1):
+            return f(gamma, sigma) ** power
+
+        assert fn((X + Y), gamma=1, sigma=2) == 3
+        assert fn((X + Y), gamma=1, sigma=2, power=2) == 9
+
+    def test_ignore_kwargs(self):
+        @formula((), invalid="pass")
+        def fn(gamma, **kwargs):
+            return gamma + sum(kwargs.values())
+
+        assert fn(gamma=1, sigma=2) == 3
+        assert fn(gamma=1, sigma=2, beta=3) == 6
 
 
 class TestFormulaSIR:

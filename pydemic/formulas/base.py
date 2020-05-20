@@ -5,7 +5,8 @@ from numbers import Real
 
 import numpy as np
 
-from ..params import get_param, ParamLike
+from pydemic.params import ParamLike
+from ..params import get_param
 
 # Function registry
 FUNCTIONS_R0_FROM_K = {}
@@ -38,7 +39,7 @@ ALTERNATE_FORMS = {
 }
 
 
-def formula(model, ignore=(), ignore_invalid=False):
+def formula(model=None, ignore=(), options=(), invalid="raise", positional=0):
     """
     Decorator that register formula functions.
 
@@ -56,19 +57,35 @@ def formula(model, ignore=(), ignore_invalid=False):
             provide a consistent interface for different models. This way, a
             simple model can simply ignore parameters from a more sophisticated
             one (e.g.. SIR can ignore the incubation_period of a SEIR model).
-        ignore_invalid:
-            Ignore all invalid parameters irrespectively if they are explicitly
-            registered or not.
+        options:
+            Additional parameters that are simply passed to the decorated
+            function without any special handling.
+        positional:
+            The number of required positional arguments the function uses.
+        invalid ('ignore', 'pass', 'raise'):
+            Strategy to use when encounter invalid parameters: 'ignore', simply
+            suppress them, 'pass', pass them to the decorated function and
+            'raise' (default) raises an error.
     """
 
     def decorator(fn):
+        if invalid not in ("ignore", "pass", "raise"):
+            raise ValueError(f'bad "invalid" strategy: {invalid!r}')
+
         signature = inspect.signature(fn)
-        arguments = set(signature.parameters)
+        arguments = set(list(signature.parameters)[positional:]).difference(options)
         alternatives = {x for x, (k, _) in ALTERNATE_FORMS.items() if k in arguments}
+
+        # Remove **starred_kwargs from arguments
+        for arg in signature.parameters.values():
+            if arg.kind == arg.VAR_KEYWORD:
+                arguments.discard(arg.name)
         n_args = len(arguments)
 
         # Feed ignore set with the list of alternatives
         ignore_set = set(ignore)
+        options_set = set(options)
+
         for k in ignore_set:
             try:
                 k, _ = ALTERNATE_FORMS[k]
@@ -77,12 +94,31 @@ def formula(model, ignore=(), ignore_invalid=False):
                 continue
 
         @wraps(fn)
-        def decorated(_ns: ParamLike = None, **kwargs):
+        def decorated(*args_, **kwargs):
+            params: ParamLike
+
+            options = {}
+            args = args_[:positional]
+            if len(args_) == positional:
+                params = None
+            elif len(args_) == positional + 1:
+                params = args_[positional]
+            else:
+                n = positional
+                m = len(args_)
+                TypeError(f"Expect {n} or {n + 1} positional arguments, got {m}")
+
+            args = args[:positional]
+
             # Remove all ignored parameters
             if ignore_set:
                 for k in list(kwargs):
                     if k in ignore_set:
                         del kwargs[k]
+
+            # Extract options
+            for k in options_set.intersection(kwargs):
+                options[k] = kwargs.pop(k)
 
             # Normalize all alternative values passed as keyword arguments.
             for k in alternatives.intersection(kwargs):
@@ -91,32 +127,37 @@ def formula(model, ignore=(), ignore_invalid=False):
                 kwargs[k] = transform(v)
 
             # Check for invalid keyword arguments
-            invalid = set(kwargs) - arguments
-            if invalid and ignore_invalid:
+            invalid_set = set(kwargs) - arguments
+            if invalid_set and invalid == "ignore":
                 for k in invalid:
                     del kwargs[k]
-            elif invalid:
-                raise TypeError(f"invalid argument: {invalid.pop()}")
+            elif invalid_set and invalid == "raise":
+                raise TypeError(f"invalid argument: {invalid_set.pop()}")
+            elif invalid_set:
+                options.update({k: kwargs.pop(k) for k in invalid_set})
 
             if len(kwargs) == n_args:
-                return fn(**kwargs)
+                return fn(*args, **kwargs, **options)
 
             # If we do not have enough arguments, try the positional value
             missing = arguments - kwargs.keys()
-            if _ns is None:
+            if params is None:
                 raise TypeError(f"missing required argument: {missing.pop()}")
 
             for k in missing:
-                kwargs[k] = get_param(k, _ns)
+                try:
+                    kwargs[k] = get_param(k, params)
+                except ValueError:
+                    pass
 
             # Try alternate forms if not all keyword arguments were completed.
             if len(kwargs) < n_args:
                 for arg in alternatives:
                     k, transform = ALTERNATE_FORMS[arg]
                     if k not in kwargs:
-                        kwargs[k] = transform(get_param(arg, _ns))
+                        kwargs[k] = transform(get_param(arg, params))
 
-            return fn(**kwargs)
+            return fn(*args, **kwargs, **options)
 
         def register(model):
             """
@@ -138,7 +179,7 @@ def formula(model, ignore=(), ignore_invalid=False):
         decorated.register = register
 
         # Register formula
-        model_lst = (model,) if isinstance(model, str) else tuple(model)
+        model_lst = (model,) if isinstance(model, str) else tuple(model or ())
         for m in model_lst:
             FUNCTIONS[fn.__name__][m] = decorated
         decorated.models = frozenset(model_lst)

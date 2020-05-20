@@ -2,7 +2,7 @@ from time import sleep
 
 import pytest
 
-from pydemic.cache import tle_cache
+from pydemic.cache import ttl_cache
 
 
 class TestCaches:
@@ -10,7 +10,7 @@ class TestCaches:
     def test_tle_cache_works(self):
         lst = []
 
-        @tle_cache("testing", timeout=0.01)
+        @ttl_cache("testing", timeout=0.01)
         def cache_function_with_side_effects(n):
             print(f"Calling with argument {n}")
             lst.append(n)
