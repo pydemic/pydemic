@@ -44,6 +44,8 @@ def smoothed_diff(
     Returns:
         Either a :cls:`np.ndarray` of smoothed differences or a :cls:`result` value.
     """
+    data = np.asarray(data)
+    maximum_value = data.max()
     data = np.diff(data, prepend=0.0)
 
     # Guarantee that there are no zero values in the
@@ -61,4 +63,5 @@ def smoothed_diff(
     holt = sm.tsa.Holt(data, exponential=not linear, damped=damped)
     res = holt.fit(use_brute=not fast_init, **kwargs)
     out = res.fittedvalues
+    out *= maximum_value / out.sum()
     return Result(out, res) if retall else out
