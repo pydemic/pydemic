@@ -33,7 +33,7 @@ class Covid19(Disease):
         return 0.45
 
     def icu_period(self, **kwargs):
-        return 7.19
+        return 7.5
 
     def hospitalization_period(self, **kwargs):
         return 10.0
