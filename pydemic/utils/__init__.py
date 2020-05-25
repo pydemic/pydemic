@@ -12,6 +12,6 @@ from .properties import (
     param_alias,
     inverse_transform,
 )
-from .sequences import rpartition, flatten_dict, unflatten_dict, extract_keys
+from .sequences import rpartition, flatten_dict, unflatten_dict, extract_keys, sliced
 
 not_implemented = lambda *args: _sk.error(NotImplementedError)

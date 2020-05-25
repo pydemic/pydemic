@@ -43,7 +43,7 @@ class AbstractSEIR(Base):
     def _initial_infected(self):
         return super().extrapolate_cases("exposed")
 
-    def get_data_cases(self):
+    def get_data_cases(self, idx):
         # SEIR makes a distinction between "Infectious" and "Exposed". Different
         # diseases may have different clinical evolutions, but it is reasonable
         # to expect that in many situations, individuals only manifest symptoms

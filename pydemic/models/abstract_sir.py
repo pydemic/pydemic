@@ -78,25 +78,22 @@ class AbstractSIR(Model, ABC):
     #
     # Process data
     #
-    def get_data_N(self):
-        return self.data.sum(1)
-
-    def get_data_force(self):
-        I = self["infectious"]
-        N = self["N"]
+    def get_data_force(self, idx):
+        I = self["infectious", idx]
+        N = self["N", idx]
         return self.beta * (I / N)
 
-    def get_data_resolved_cases(self):
-        I = self["infectious"]
+    def get_data_resolved_cases(self, idx):
+        I = self["infectious", idx]
         res = integrate.cumtrapz(I, self.times, initial=0.0)
         return pd.Series(res * self.gamma, index=I.index)
 
-    def get_data_cases(self):
-        infections = self["force"] * self["susceptible"] * self.Qs
+    def get_data_cases(self, idx):
+        infections = self["force", idx] * self["susceptible", idx] * self.Qs
         res = integrate.cumtrapz(infections, self.times, initial=0.0)
         return pd.Series(res + self.initial_cases, index=infections.index)
 
-    def get_data_infected(self):
-        infections = self["force"] * self["susceptible"]
+    def get_data_infected(self, idx):
+        infections = self["force", idx] * self["susceptible", idx]
         res = integrate.cumtrapz(infections, self.times, initial=0.0)
         return pd.Series(res + self.initial_infected, index=infections.index)

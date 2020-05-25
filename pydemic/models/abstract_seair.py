@@ -43,8 +43,8 @@ class AbstractSEAIR(Base, ABC):
     def _initial_state(self):
         return np.array((self.population - 1, 1, 0, 0, 0), dtype=float)
 
-    def get_data_force(self):
-        I = self["infectious"]
-        A = self["asymptomatic"]
-        N = self["N"]
+    def get_data_force(self, idx):
+        I = self["infectious", idx]
+        A = self["asymptomatic", idx]
+        N = self["N", idx]
         return self.beta * (I + self.rho * A) / N

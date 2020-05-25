@@ -5,7 +5,7 @@ from scipy.integrate import cumtrapz
 from sidekick import placeholder as _
 
 from .hospitalization_with_delay import HospitalizationWithDelay
-from ..utils import param_property
+from ..utils import param_property, sliced
 
 
 class HospitalizationWithOverflow(HospitalizationWithDelay):
@@ -44,93 +44,98 @@ class HospitalizationWithOverflow(HospitalizationWithDelay):
     #
 
     # Deaths
-    def get_data_deaths(self):
-        return self["natural_deaths"] + self["overflow_deaths"]
+    def get_data_deaths(self, idx):
+        return self["natural_deaths", idx] + self["overflow_deaths", idx]
 
-    def get_data_natural_deaths(self):
+    def get_data_natural_deaths(self, idx):
         """
         The number of deaths assuming healthcare system in full capacity.
         """
-        return super().get_data_deaths()
+        return super().get_data_deaths(idx)
 
-    def get_data_overflow_deaths(self):
+    def get_data_overflow_deaths(self, idx):
         """
         The number of deaths caused by overflowing the healthcare system.
         """
-        return self["icu_overflow_deaths"] + self["hospital_overflow_deaths"]
+        return self["icu_overflow_deaths", idx] + self["hospital_overflow_deaths", idx]
 
-    def get_data_icu_overflow_deaths(self):
+    def get_data_icu_overflow_deaths(self, idx):
         """
         The number of deaths caused by overflowing ICUs.
         """
         # We just want to comput the excess deaths, so we discount the
         # contribution from natural ICUFR that is computed in natural deaths
+        times = sliced(self.times, idx)
         scale = 1 - self.ICUFR
-        area = cumtrapz(self["critical_overflow"] * scale, self.times, initial=0)
-        return pd.Series(area / self.icu_period, index=self.times)
+        area = cumtrapz(self["critical_overflow", idx] * scale, times, initial=0)
+        return pd.Series(area / self.icu_period, index=times)
 
-    def get_data_hospital_overflow_deaths(self):
+    def get_data_hospital_overflow_deaths(self, idx):
         """
         The number of deaths caused by overflowing regular hospital beds.
         """
-        area = cumtrapz(self["severe_overflow"], self.times, initial=0)
+        times = sliced(self.times, idx)
+        area = cumtrapz(self["severe_overflow", idx], times, initial=0)
         cases = area / self.hospitalization_period
-        deaths = cases * min((self.Qcr / self.Qsv) * self.hospitalization_overflow_bias, 1)
-        return pd.Series(deaths, index=self.times)
+        ratio = (self.Qcr / self.Qsv) * self.hospitalization_overflow_bias
+        deaths = cases * min(ratio, 1)
+        return pd.Series(deaths, index=times)
 
-    def get_data_overflow_death_rate(self):
+    def get_data_overflow_death_rate(self, idx):
         """
         Daily number of additional deaths due to overflowing the healthcare system.
         """
-        return self["overflow_deaths"].diff().fillna(0)
+        return self["overflow_deaths", idx].diff().fillna(0)
 
-    def get_data_icu_overflow_death_rate(self):
+    def get_data_icu_overflow_death_rate(self, idx):
         """
         Daily number of additional deaths due to overflowing the ICU capacity.
         """
-        return self["icu_overflow_deaths"].diff().fillna(0)
+        return self["icu_overflow_deaths", idx].diff().fillna(0)
 
-    def get_data_hospital_overflow_death_rate(self):
+    def get_data_hospital_overflow_death_rate(self, idx):
         """
         Daily number of additional deaths due to overflowing hospital capacity.
         """
-        return self["hospital_overflow_deaths"].diff().fillna(0)
+        return self["hospital_overflow_deaths", idx].diff().fillna(0)
 
     # Severe/hospitalizations dynamics
-    def get_data_severe_overflow(self):
+    def get_data_severe_overflow(self, idx):
         """
         The number of severe cases that are not being treated in a hospital
         facility.
         """
-        data = np.maximum(self["severe"] - self.hospital_surge_capacity, 0)
-        return pd.Series(data, index=self.times)
+        data = np.maximum(self["severe", idx] - self.hospital_surge_capacity, 0)
+        return pd.Series(data, index=sliced(self.times, idx))
 
-    def get_data_hospitalized_cases(self):
-        area = cumtrapz(self["hospitalized"], self.times, initial=0)
-        return pd.Series(area / self.hospitalization_period, index=self.times)
+    def get_data_hospitalized_cases(self, idx):
+        times = sliced(self.times, idx)
+        area = cumtrapz(self["hospitalized", idx], times, initial=0)
+        return pd.Series(area / self.hospitalization_period, index=times)
 
-    def get_data_hospitalized(self):
-        demand = self["severe"]
+    def get_data_hospitalized(self, idx):
+        demand = self["severe", idx]
         data = np.minimum(demand, self.hospital_surge_capacity)
-        return pd.Series(data, index=self.times)
+        return pd.Series(data, index=sliced(self.times, idx))
 
     # Critical/ICU dynamics
-    def get_data_critical_overflow(self):
+    def get_data_critical_overflow(self, idx):
         """
         The number of critical cases that are not being treated in an ICU
         facility.
         """
-        data = np.maximum(self["critical"] - self.icu_surge_capacity, 0)
-        return pd.Series(data, index=self.times)
+        data = np.maximum(self["critical", idx] - self.icu_surge_capacity, 0)
+        return pd.Series(data, index=sliced(self.times, idx))
 
-    def get_data_icu_cases(self):
-        area = cumtrapz(self["icu"], self.times, initial=0)
-        return pd.Series(area / self.icu_period, index=self.times)
+    def get_data_icu_cases(self, idx):
+        times = sliced(self.times, idx)
+        area = cumtrapz(self["icu", idx], times, initial=0)
+        return pd.Series(area / self.icu_period, index=times)
 
-    def get_data_icu(self):
-        demand = self["hospitalized"]
+    def get_data_icu(self, idx):
+        demand = self["hospitalized", idx]
         data = np.minimum(demand, self.icu_surge_capacity)
-        return pd.Series(data, index=self.times)
+        return pd.Series(data, index=sliced(self.times, idx))
 
     # Aliases
     get_data_icu_overflow = get_data_critical_overflow

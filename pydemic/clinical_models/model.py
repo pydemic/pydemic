@@ -64,38 +64,38 @@ class ClinicalModel(Model, ABC):
     #
     # Data accessors
     #
-    def get_data(self, name):
+    def get_column(self, name, idx):
         name = self.DATA_ALIASES.get(name, name)
         try:
-            return super().get_data(name)
+            return super().get_column(name, idx)
         except ValueError:
-            return self.infection_model.get_data(name)
+            return self.infection_model.get_column(name, idx)
 
     # Basic columns
-    def get_data_population(self):
+    def get_data_population(self, idx):
         """
         Total population minus deaths.
         """
-        return self.infection_model["population"] - self["deaths"]
+        return self.infection_model["population", idx] - self["deaths", idx]
 
-    def get_data_infectious(self):
+    def get_data_infectious(self, idx):
         """
         Infectious population according to infectious model.
 
         This is usually the starting point of all clinical models.
         """
-        return self.infection_model["infectious"]
+        return self.infection_model["infectious", idx]
 
-    def get_data_cases(self):
+    def get_data_cases(self, idx):
         """
         Cumulative curve of cases.
 
         A case is typically defined as an individual who got infected AND
         developed recognizable clinical symptoms.
         """
-        return self.infection_model["cases"]
+        return self.infection_model["cases", idx]
 
-    def get_data_infected(self):
+    def get_data_infected(self, idx):
         """
         Cumulative curve of infected individuals.
 
@@ -103,37 +103,37 @@ class ClinicalModel(Model, ABC):
         develop symptoms (asymptomatic) or develop them in a future time.
         """
         try:
-            return self.infection_model["infected"]
+            return self.infection_model["infected", idx]
         except KeyError:
-            return self["cases"]
+            return self["cases", idx]
 
     # Derived methods
-    def get_data_empirical_CFR(self):
+    def get_data_empirical_CFR(self, idx):
         """
         Empirical CFR computed as current deaths over cases.
         """
-        return (self["deaths"] / self["cases"]).fillna(0.0)
+        return (self["deaths", idx] / self["cases", idx]).fillna(0.0)
 
-    def get_data_empirical_IFR(self):
+    def get_data_empirical_IFR(self, idx):
         """
         Empirical IFR computed as current deaths over infected.
         """
-        return (self["deaths"] / self["infected"]).fillna(0.0)
+        return (self["deaths", idx] / self["infected", idx]).fillna(0.0)
 
     # Abstract interface
-    def get_data_death_rate(self):
+    def get_data_death_rate(self, idx):
         """
         Daily number of deaths.
         """
-        return self["deaths"].diff().fillna(0)
+        return self["deaths", idx].diff().fillna(0)
 
-    def get_data_deaths(self):
+    def get_data_deaths(self, idx):
         """
         Cumulative curve of deaths.
         """
         raise NotImplementedError("must be implemented in sub-classes")
 
-    def get_data_severe(self):
+    def get_data_severe(self, idx):
         """
         Current number of severe cases.
 
@@ -141,7 +141,7 @@ class ClinicalModel(Model, ABC):
         """
         raise NotImplementedError("must be implemented in sub-classes")
 
-    def get_data_severe_cases(self):
+    def get_data_severe_cases(self, idx):
         """
         Cumulative number of severe cases.
 
@@ -149,7 +149,7 @@ class ClinicalModel(Model, ABC):
         """
         raise NotImplementedError("must be implemented in sub-classes")
 
-    def get_data_critical(self):
+    def get_data_critical(self, idx):
         """
         Current number of critical cases.
 
@@ -157,7 +157,7 @@ class ClinicalModel(Model, ABC):
         """
         raise NotImplementedError("must be implemented in sub-classes")
 
-    def get_data_critical_cases(self):
+    def get_data_critical_cases(self, idx):
         """
         Cumulative number of critical cases.
 
@@ -165,24 +165,24 @@ class ClinicalModel(Model, ABC):
         """
         raise NotImplementedError("must be implemented in sub-classes")
 
-    def get_data_hospitalized(self):
+    def get_data_hospitalized(self, idx):
         """
         Cases currently occupying a hospital bed.
 
         In an ideal world, this would be equal to the number of severe cases.
         The default implementation assumes that.
         """
-        return self["severe"]
+        return self["severe", idx]
 
-    def get_data_hospitalized_cases(self):
+    def get_data_hospitalized_cases(self, idx):
         """
         Cumulative number of hospitalizations.
 
         Default implementation assumes equal to the number of severe cases.
         """
-        return self["severe_cases"]
+        return self["severe_cases", idx]
 
-    def get_data_icu(self):
+    def get_data_icu(self, idx):
         """
         Number of ICU patients.
 
@@ -190,15 +190,15 @@ class ClinicalModel(Model, ABC):
         The default implementation assumes that.
         Default implementation assumes equal to the number of critical cases.
         """
-        return self["critical"]
+        return self["critical", idx]
 
-    def get_data_icu_cases(self):
+    def get_data_icu_cases(self, idx):
         """
         Cumulative number of ICU patients.
 
         Default implementation assumes equal to the number of critical cases.
         """
-        return self["critical_cases"]
+        return self["critical_cases", idx]
 
     #
     # Other functions

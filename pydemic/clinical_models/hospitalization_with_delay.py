@@ -25,25 +25,25 @@ class HospitalizationWithDelay(CrudeFR):
     #
     # Data methods
     #
-    def get_data_deaths(self):
+    def get_data_deaths(self, idx):
         K = max(self.K, 0)
         try:
-            critical = self["critical_cases"]
+            critical = self["critical_cases", idx]
         except KeyError:
-            return delayed(self["severe_cases"] * self.HFR, self.hospitalization_period, K)
+            return delayed(self["severe_cases", idx] * self.HFR, self.hospitalization_period, K)
         else:
             return delayed(critical * self.ICUFR, self.icu_period, K)
 
-    def get_data_critical(self):
-        data = self["critical_cases"]
+    def get_data_critical(self, idx):
+        data = self["critical_cases", idx]
         return delayed_with_discharge(data, 0, self.icu_period, self.K, positive=True)
 
-    def get_data_severe_cases(self):
+    def get_data_severe_cases(self, idx):
         K = max(self.K, 0)
-        return delayed(self["cases"] * self.Qsv, self.severe_delay, K)
+        return delayed(self["cases", idx] * self.Qsv, self.severe_delay, K)
 
-    def get_data_critical_cases(self):
+    def get_data_critical_cases(self, idx):
         K = max(self.K, 0)
-        values = self["severe_cases"] * (self.Qcr / self.Qsv)
+        values = self["severe_cases", idx] * (self.Qcr / self.Qsv)
         delay = self.severe_delay - self.critical_delay
         return delayed(values, delay, K)

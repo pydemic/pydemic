@@ -51,16 +51,16 @@ class CrudeFR(ClinicalObserverModel):
     prob_aggravate_to_icu = sk.property(_.Qcr / _.Qsv)
 
     # Cumulative series
-    def get_data_deaths(self):
-        return self["cases"] * self.CFR
+    def get_data_deaths(self, idx):
+        return self["cases", idx] * self.CFR
 
-    def get_data_severe(self):
-        data = self["severe_cases"]
+    def get_data_severe(self, idx):
+        data = self["severe_cases", idx]
         K = max(self.K, 0)
         return delayed_with_discharge(data, 0, self.hospitalization_period, K, positive=True)
 
-    def get_data_severe_cases(self):
-        return self["cases"] * self.Qsv
+    def get_data_severe_cases(self, idx):
+        return self["cases", idx] * self.Qsv
 
-    def get_data_critical_cases(self):
-        return self["cases"] * self.Qcr
+    def get_data_critical_cases(self, idx):
+        return self["cases", idx] * self.Qcr

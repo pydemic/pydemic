@@ -67,3 +67,13 @@ def extract_keys(keys, dic, drop=True):
         except KeyError:
             pass
     return out
+
+
+def sliced(seq, idx):
+    """
+    Possibly slice object if index is not None.
+    """
+    if idx is None:
+        return seq
+    else:
+        return seq[idx]

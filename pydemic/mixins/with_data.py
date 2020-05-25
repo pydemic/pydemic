@@ -1,9 +1,13 @@
 from abc import ABC
+from typing import Callable, TYPE_CHECKING
 
 import pandas as pd
 import sidekick as sk
 
 from .data_transforms import DATA_TRANSFORMS, MODEL_TRANSFORMS
+
+if TYPE_CHECKING:
+    from ..models.model_meta import Meta
 
 
 class WithDataMixin(ABC):
@@ -13,6 +17,9 @@ class WithDataMixin(ABC):
     """
 
     data: pd.DataFrame
+    times: pd.Index
+    _meta: "Meta"
+    get_param: Callable[[str], float]
     DATA_ALIASES: dict  # FIXME: remove this!
 
     def __init__(self, data=None):
@@ -20,39 +27,40 @@ class WithDataMixin(ABC):
             self.data = data
 
     def __getitem__(self, item):
-        if isinstance(item, str):
-            col, _, transform = item.rpartition(":")
-            if col:
-                fn = self.get_data_transformer(transform)
-                return fn(col)
-            else:
-                try:
-                    return self.get_data(transform)
-                except ValueError:
-                    raise KeyError(item)
-
-        elif isinstance(item, list):
-            df = pd.DataFrame()
-            for col in item:
-                series = self[col]
-                series.name = name = col.partition(":")[0]
-                if name in df.columns:
-                    name = col
-                df[name] = series
-            return df
-
-        elif isinstance(item, tuple):
+        if isinstance(item, tuple):
             col, idx = item
-            if ":" not in col:
-                col = self.DATA_ALIASES.get(col, col)
-            return self[col].iloc[idx]
+
+            if isinstance(col, str):
+                col, _, transform = col.rpartition(":")
+                if col:
+                    fn = self.data_transformer(transform)
+                    return fn(col, idx)
+                else:
+                    col = transform
+                    try:
+                        return self.get_column(col, idx)
+                    except ValueError:
+                        raise KeyError(item)
+
+            elif isinstance(item, list):
+                df = pd.DataFrame()
+                for col in item:
+                    series = self[col, idx]
+                    series.name = name = col.partition(":")[0]
+                    if name in df.columns:
+                        name = col
+                    df[name] = series
+                return df
+
+        elif isinstance(item, (str, list)):
+            return self.__getitem__((item, None))
 
         elif isinstance(item, slice):
             raise NotImplementedError
         else:
             raise TypeError(f"invalid item: {item!r}")
 
-    def get_data(self, name):
+    def get_column(self, name, idx):
         """
         Return a data column with the given name.
         """
@@ -65,12 +73,15 @@ class WithDataMixin(ABC):
         except AttributeError:
             pass
         else:
-            return method()
+            return method(idx)
 
         # The next step is to check if requested column is in the state space
         name = self.DATA_ALIASES.get(name, name)
         try:
-            data = self.data[name]
+            if idx is None:
+                data = self.data[name]
+            else:
+                data = self.data[name].iloc[idx]
         except KeyError:
             pass
         else:
@@ -81,10 +92,11 @@ class WithDataMixin(ABC):
         # from the other parameters.
         if name in self._meta.params.all:
             x = self.get_param(name)
-            return pd.Series([x] * self.iter, index=self.times, name=name)
+            times = self.times[idx or slice(None, None)]
+            return pd.Series([x] * len(times), index=times, name=name)
         raise ValueError(f"invalid column: {name!r}")
 
-    def get_data_transformer(self, name):
+    def data_transformer(self, name):
         """
         Return a transformer function that reads a column represented by name
         (usually calling self.get_data(col) and then transform the result by
@@ -111,11 +123,11 @@ class WithDataMixin(ABC):
 
         if name in MODEL_TRANSFORMS:
             fn = MODEL_TRANSFORMS[name]
-            return lambda col: fn(self, col)
+            return lambda col, idx: fn(self, col, idx)
 
         try:
             fn = DATA_TRANSFORMS[name]
-            return lambda col: fn(self[col])
+            return lambda col, idx: fn(self[col], idx)
 
         except KeyError:
             raise ValueError(f"Invalid transform: {name}")
@@ -134,8 +146,14 @@ class WithDataModelMixin(WithDataMixin, ABC):
         self.initialize()
         return self.__dict__["data"]
 
-    def get_data_population(self):
+    def get_data_population(self, idx):
         """
         Return current population.
         """
-        return self.data.sum(1)
+        return self.data.iloc[idx or slice(None, None)].sum(1)
+
+    def get_data_N(self, idx):
+        """
+        Shorthand for get_data_population.
+        """
+        return self.get_data_population(idx)
