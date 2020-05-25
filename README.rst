@@ -1,3 +1,12 @@
+.. image:: https://api.codeclimate.com/v1/badges/43969668ddbe90e8c4e6/maintainability
+   :target: https://codeclimate.com/github/pydemic/pydemic/maintainability
+   :alt: Maintainability
+
+.. image:: https://api.codeclimate.com/v1/badges/43969668ddbe90e8c4e6/test_coverage
+   :target: https://codeclimate.com/github/pydemic/pydemic/test_coverage
+   :alt: Test Coverage
+
+
 ==============
 Pydemic Models
 ==============
