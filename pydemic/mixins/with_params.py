@@ -9,11 +9,12 @@ import pandas as pd
 import sidekick as sk
 from sidekick import placeholder as _
 
-from ..types import ImproperlyConfigured
 from .params_info import ParamsInfo
+from ..diseases import disease as get_disease
 from ..logging import log
 from ..params import Param, param, get_param
-from ..utils import extract_keys
+from ..types import ImproperlyConfigured
+from ..utils import extract_keys, maybe_run
 
 param_ = param
 
@@ -35,6 +36,7 @@ class WithParamsMixin(ABC):
 
     def __init__(self, params=None, disease=None, keywords=None):
         self._params = {}
+        disease = maybe_run(get_disease, disease)
 
         if params is not None:
             self.set_params(params)

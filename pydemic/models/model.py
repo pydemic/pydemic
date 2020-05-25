@@ -11,7 +11,7 @@ from sidekick import placeholder as _
 from .clinical_acessor import Clinical
 from .model_meta import ModelMeta
 from .. import formulas
-from ..diseases import Disease
+from ..diseases import Disease, disease as get_disease
 from ..mixins import (
     WithParamsMixin,
     WithDataModelMixin,
@@ -20,7 +20,7 @@ from ..mixins import (
     WithRegionDemography,
 )
 from ..packages import plt
-from ..utils import today, not_implemented, extract_keys
+from ..utils import today, not_implemented, extract_keys, maybe_run
 
 NOW = datetime.datetime.now()
 TODAY = datetime.date(NOW.year, NOW.month, NOW.day)
@@ -75,7 +75,7 @@ class Model(
     ):
         self.name = name or f"{type(self).__name__} model"
         self.date = pd.to_datetime(date or today())
-        self.disease = disease
+        self.disease = maybe_run(get_disease, disease)
         self._initialized = False
 
         demography_opts = WithRegionDemography._init_from_dict(self, kwargs)

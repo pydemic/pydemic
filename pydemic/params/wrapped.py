@@ -13,10 +13,10 @@ class WrappedParams:
     Qs = sk.alias("prob_symptoms")
     Qsv = sk.alias("prob_severe")
     Qcr = sk.alias("prob_critical")
-    CFR = sk.alias("case_fatality_rate")
-    IFR = sk.alias("infection_fatality_rate")
-    HFR = sk.alias("hospital_fatality_rate")
-    ICUFR = sk.alias("icu_fatality_rate")
+    CFR = sk.alias("case_fatality_ratio")
+    IFR = sk.alias("infection_fatality_ratio")
+    HFR = sk.alias("hospital_fatality_ratio")
+    ICUFR = sk.alias("icu_fatality_ratio")
 
     __slots__ = ("_wrapped", "_args", "_kwargs", "_cache")
 

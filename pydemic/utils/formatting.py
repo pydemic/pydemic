@@ -24,10 +24,12 @@ HUMANIZED_SUFFIXES = (
 )
 
 
-def fmt(n):
+def fmt(n, empty="-"):
     """
     Heuristically choose best format option for number.
     """
+    if n is None:
+        return empty
 
     if n == float("inf"):
         return _("infinity")
@@ -63,10 +65,12 @@ def _fix_int(s, n):
     return ",".join(map("".join, rpartition(s, n)))
 
 
-def pc(n):
+def pc(n, empty="-"):
     """
     Write number as percentages.
     """
+    if n is None:
+        return empty
     if n == 0:
         return "0.0%"
     return fmt(100 * n) + "%"

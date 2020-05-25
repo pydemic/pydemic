@@ -145,7 +145,7 @@ class Disease(ABC):
             return Dataset(data, source, description)
         return data
 
-    def case_fatality_rate(self, **kwargs) -> QualValueT:
+    def case_fatality_ratio(self, **kwargs) -> QualValueT:
         """
         Compute the case fatality ratio with possible age distribution
         adjustments.
@@ -158,9 +158,9 @@ class Disease(ABC):
             source:
                 Reference source used to provide the mortality table.
         """
-        return self._fatality_rate("CFR", **kwargs)
+        return self._fatality_ratio("CFR", **kwargs)
 
-    def infection_fatality_rate(self, **kwargs) -> QualValueT:
+    def infection_fatality_ratio(self, **kwargs) -> QualValueT:
         """
         Compute the infection fatality ratio with possible age distribution
         adjustments.
@@ -173,9 +173,9 @@ class Disease(ABC):
             source:
                 Reference source used to provide the mortality table.
         """
-        return self._fatality_rate("IFR", **kwargs)
+        return self._fatality_ratio("IFR", **kwargs)
 
-    def _fatality_rate(self, col, age_distribution=None, source=None, region=None):
+    def _fatality_ratio(self, col, age_distribution=None, source=None, region=None):
         table = self.mortality_table(source=source)
 
         if age_distribution is None and region:
@@ -235,12 +235,12 @@ class Disease(ABC):
         except KeyError:
             pass
         try:
-            return self.CFR(**kwargs) / self.icu_fatality_rate(**kwargs)
+            return self.CFR(**kwargs) / self.icu_fatality_ratio(**kwargs)
         except RecursionError:
             model = type(self).__name__
             raise ImproperlyConfigured(
                 f"""
-{model} class must implement either prob_critical() or icu_fatality_rate()
+{model} class must implement either prob_critical() or icu_fatality_ratio()
 methods. Otherwise, the default implementation creates a recursion between both
 methods."""
             )
@@ -376,14 +376,14 @@ methods."""
         """
         return 1 / self.incubation_period(**kwargs)
 
-    def hospital_fatality_rate(self, **kwargs) -> QualValueT:
+    def hospital_fatality_ratio(self, **kwargs) -> QualValueT:
         """
         Probability of death once requires hospitalization.
         """
         # FIXME: make properly age-stratified
         return self.CFR(**kwargs) / self.prob_severe(**kwargs)
 
-    def icu_fatality_rate(self, **kwargs) -> QualValueT:
+    def icu_fatality_ratio(self, **kwargs) -> QualValueT:
         """
         Probability of death once requires intensive care.
 
@@ -414,27 +414,27 @@ methods."""
 
     def CFR(self, **kwargs) -> QualValueT:
         """
-        Alias to "case_fatality_rate"
+        Alias to "case_fatality_ratio"
         """
-        return self.case_fatality_rate(**kwargs)
+        return self.case_fatality_ratio(**kwargs)
 
     def IFR(self, **kwargs) -> QualValueT:
         """
-        Alias to "infection_fatality_rate"
+        Alias to "infection_fatality_ratio"
         """
-        return self.infection_fatality_rate(**kwargs)
+        return self.infection_fatality_ratio(**kwargs)
 
     def HFR(self, **kwargs) -> QualValueT:
         """
-        Alias to "hospital_fatality_rate"
+        Alias to "hospital_fatality_ratio"
         """
-        return self.hospital_fatality_rate(**kwargs)
+        return self.hospital_fatality_ratio(**kwargs)
 
     def ICUFR(self, **kwargs) -> QualValueT:
         """
-        Alias to "icu_fatality_rate"
+        Alias to "icu_fatality_ratio"
         """
-        return self.icu_fatality_rate(**kwargs)
+        return self.icu_fatality_ratio(**kwargs)
 
     #
     # Conversions to parameters
@@ -464,10 +464,10 @@ methods."""
         methods = (
             "R0",
             "rho",
-            "case_fatality_rate",
-            "infection_fatality_rate",
-            "hospital_fatality_rate",
-            "icu_fatality_rate",
+            "case_fatality_ratio",
+            "infection_fatality_ratio",
+            "hospital_fatality_ratio",
+            "icu_fatality_ratio",
             "infectious_period",
             "incubation_period",
             "hospitalization_period",
@@ -484,10 +484,10 @@ methods."""
             ("Qsv", "prob_severe"),
             ("Qcr", "prob_critical"),
             ("Qs", "prob_symptoms"),
-            ("IFR", "infection_fatality_rate"),
-            ("CFR", "case_fatality_rate"),
-            ("HFR", "hospital_fatality_rate"),
-            ("ICUFR", "icu_fatality_rate"),
+            ("IFR", "infection_fatality_ratio"),
+            ("CFR", "case_fatality_ratio"),
+            ("HFR", "hospital_fatality_ratio"),
+            ("ICUFR", "icu_fatality_ratio"),
         )
 
         transforms = (

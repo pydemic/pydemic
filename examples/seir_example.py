@@ -17,7 +17,7 @@ print(f"Qs              : {pc(cm.Qs)}")
 print(f"CFR             : {pc(cm.CFR)}")
 print(f"CFR (empirical) : {pc(cm.empirical_CFR)}")
 print(f"IFR             : {pc(cm.IFR)}")
-print(f"IFR             : {pc(cm.infection_fatality_rate)}")
+print(f"IFR             : {pc(cm.infection_fatality_ratio)}")
 print(f"IFR (empirical) : {pc(cm.empirical_IFR)}")
 
 

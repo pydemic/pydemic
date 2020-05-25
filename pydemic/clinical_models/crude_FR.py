@@ -22,9 +22,9 @@ class CrudeFR(ClinicalObserverModel):
             Average duration of hospitalizations.
         icu_period:
             Average duration of ICU treatment.
-        hospital_fatality_rate (float, alias: HFR):
+        hospital_fatality_ratio (float, alias: HFR):
             Fraction of deaths for patients that go to hospitalization.
-        icu_fatality_rate (float, alias: ICUFR):
+        icu_fatality_ratio (float, alias: ICUFR):
             Fraction of deaths for patients that go to ICU treatment.
     """
 
@@ -42,11 +42,11 @@ class CrudeFR(ClinicalObserverModel):
     Qcr: float = param_alias("prob_critical")
 
     # Properties
-    hospital_fatality_rate = sk.property(_.CFR / _.Qsv)
-    HFR = sk.alias("hospital_fatality_rate")
+    hospital_fatality_ratio = sk.property(_.CFR / _.Qsv)
+    HFR = sk.alias("hospital_fatality_ratio")
 
-    icu_fatality_rate = sk.property(_.CFR / _.Qcr)
-    ICUFR = sk.alias("icu_fatality_rate")
+    icu_fatality_ratio = sk.property(_.CFR / _.Qcr)
+    ICUFR = sk.alias("icu_fatality_ratio")
 
     prob_aggravate_to_icu = sk.property(_.Qcr / _.Qsv)
 

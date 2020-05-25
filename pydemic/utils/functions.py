@@ -48,3 +48,22 @@ def coalesce(*args, raises=False):
     if raises:
         raise ValueError("All values are null.")
     return None
+
+
+def maybe_run(*args, **kwargs):
+    """
+    Return None if argument after the input function is null, otherwise
+    execute fn(*args, **kwargs)
+
+    Examples:
+        >>> from math import sqrt
+        >>> maybe_run(sqrt, 4)
+        2
+        >>> maybe_run(sqrt, None)
+        None
+
+    """
+    if args[1] is None:
+        return None
+    args = iter(args)
+    return next(args)(*args, **kwargs)

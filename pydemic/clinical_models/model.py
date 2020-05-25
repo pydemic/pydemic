@@ -23,10 +23,10 @@ class ClinicalModel(Model, ABC):
     disease = sk.delegate_to("infection_model")
 
     # Properties and aliases
-    case_fatality_rate = param_property(default=0.0)
-    infection_fatality_rate = param_property(default=lambda _: _.CFR)
-    CFR = param_alias("case_fatality_rate")
-    IFR = param_alias("infection_fatality_rate")
+    case_fatality_ratio = param_property(default=0.0)
+    infection_fatality_ratio = param_property(default=lambda _: _.CFR)
+    CFR = param_alias("case_fatality_ratio")
+    IFR = param_alias("infection_fatality_ratio")
 
     @property
     def empirical_CFR(self):

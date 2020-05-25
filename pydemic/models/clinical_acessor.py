@@ -1,4 +1,14 @@
+from typing import TYPE_CHECKING
+
 import sidekick as sk
+
+if TYPE_CHECKING:
+    from pydemic.clinical_models import (
+        CrudeFR,
+        HospitalizationWithDelay,
+        HospitalizationWithOverflow,
+        ClinicalModel,
+    )
 
 
 class Clinical:
@@ -30,20 +40,20 @@ class Clinical:
     def __getitem__(self, item):
         return self._default[item]
 
-    def clinical_model(self, cls, *args, **kwargs):
+    def clinical_model(self, cls, *args, **kwargs) -> "ClinicalModel":
         """
         Create a clinical model from model infectious model instance.
         """
         return cls(self._model, *args, **kwargs)
 
-    def crude_model(self, *args, **kwargs):
+    def crude_model(self, *args, **kwargs) -> "CrudeFR":
         """
         Create a clinical model from model infectious model instance.
         """
         cls = self._models.CrudeFR
         return self.clinical_model(cls, *args, **kwargs)
 
-    def delay_model(self, *args, **kwargs):
+    def delay_model(self, *args, **kwargs) -> "HospitalizationWithDelay":
         """
         A simple clinical model in which hospitalization occurs with some
         fixed delay.
@@ -51,7 +61,7 @@ class Clinical:
         cls = self._models.HospitalizationWithDelay
         return self.clinical_model(cls, *args, **kwargs)
 
-    def overflow_model(self, *args, **kwargs):
+    def overflow_model(self, *args, **kwargs) -> "HospitalizationWithOverflow":
         """
         A clinical model that considers the overflow of a healthcare system
         in order to compute the total death toll.
