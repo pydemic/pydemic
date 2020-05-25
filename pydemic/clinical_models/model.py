@@ -21,6 +21,10 @@ class ClinicalModel(Model, ABC):
     population = sk.delegate_to("infection_model")
     K = sk.delegate_to("infection_model")
     disease = sk.delegate_to("infection_model")
+    disease_params = sk.delegate_to("infection_model")
+    region = sk.delegate_to("infection_model")
+    age_distribution = sk.delegate_to("infection_model")
+    age_pyramid = sk.delegate_to("infection_model")
 
     # Properties and aliases
     case_fatality_ratio = param_property(default=0.0)

@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 import sidekick as sk
 
 if TYPE_CHECKING:
-    from pydemic.clinical_models import (
+    from ..clinical_models import (
         CrudeFR,
         HospitalizationWithDelay,
         HospitalizationWithOverflow,

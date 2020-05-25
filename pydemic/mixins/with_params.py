@@ -27,6 +27,7 @@ class WithParamsMixin(ABC):
     name: str
     params: ParamsInfo
     params_data: pd.DataFrame
+    disease_params: object
     _params: dict
 
     # Cache information in the params_info object as instance attributes.
@@ -34,10 +35,8 @@ class WithParamsMixin(ABC):
     __all_params: frozenset = sk.lazy(_.params.all)
     __alternative_params: frozenset = sk.lazy(_.params.alternative)
 
-    def __init__(self, params=None, disease=None, keywords=None):
+    def __init__(self, params=None, keywords=None):
         self._params = {}
-        disease = maybe_run(get_disease, disease)
-
         if params is not None:
             self.set_params(params)
 
@@ -46,7 +45,7 @@ class WithParamsMixin(ABC):
             self.set_params(extract_keys(extra, keywords))
 
         for key in self.__primary_params - self._params.keys():
-            self.set_param(key, init_param(key, self, disease))
+            self.set_param(key, init_param(key, self, self.disease_params))
 
         s1 = frozenset(self._params)
         s2 = self.__primary_params

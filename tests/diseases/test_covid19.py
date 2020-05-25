@@ -27,23 +27,23 @@ class TestCovid19:
             "R0": 2.74,
             "rho": 0.45,
             #
-            "case_fatality_rate": 0.011,
-            "infection_fatality_rate": 0.00566,
+            "case_fatality_ratio": 0.011,
+            "infection_fatality_ratio": 0.00566,
             #
-            "icu_fatality_rate": 0.490,
-            "hospital_fatality_rate": 0.277,
+            "icu_fatality_ratio": 0.490,
+            "hospital_fatality_ratio": 0.141,
             #
             "incubation_period": 3.69,
             "infectious_period": 3.47,
             #
-            "hospitalization_period": 7.48,
-            "icu_period": 7.19,
+            "hospitalization_period": 10.0,
+            "icu_period": 7.5,
             #
-            "critical_period": 7.19,
-            "severe_period": 7.48,
+            "critical_period": 7.5,
+            "severe_period": 10.0,
             #
-            "prob_critical": 0.0226,
-            "prob_severe": 0.0390,
+            "prob_critical": 0.0225,
+            "prob_severe": 0.0778,
             "prob_symptoms": 0.532,
             #
             "hospitalization_overflow_bias": 0.25,

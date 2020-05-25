@@ -78,16 +78,18 @@ class Model(
         self.disease = maybe_run(get_disease, disease)
         self._initialized = False
 
+        # Fix demography
         demography_opts = WithRegionDemography._init_from_dict(self, kwargs)
-        WithParamsMixin.__init__(self, params, disease, keywords=kwargs)
-        WithInfoMixin.__init__(self)
-        WithSummaryMixin.__init__(self)
-        WithDataModelMixin.__init__(self)
-
         if disease is None:
             self.disease_params = sk.record({})
         else:
             self.disease_params = self.disease.params(**demography_opts)
+
+        # Init other mixinss
+        WithParamsMixin.__init__(self, params, keywords=kwargs)
+        WithInfoMixin.__init__(self)
+        WithSummaryMixin.__init__(self)
+        WithDataModelMixin.__init__(self)
 
         if clinical:
             clinical = dict(clinical)
