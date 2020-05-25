@@ -1,10 +1,12 @@
+# flake8: noqa
 import datetime as dt
 from datetime import date, datetime, time, timedelta
 
 from sidekick import import_later as _imp
 from sidekick import fn, X, Y, F, X_i, L, placeholder as _
 import mundi
-import mundi_demography
+import mundi_demography as mdm
+import mundi_healthcare as mhc
 
 from pydemic_jupyter.all import *
 from .packages import *

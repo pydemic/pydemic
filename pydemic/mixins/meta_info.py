@@ -1,6 +1,10 @@
-from typing import Tuple
+from typing import Tuple, TYPE_CHECKING, Type
 
 import sidekick as sk
+
+if TYPE_CHECKING:
+    from .params_info import ParamsInfo
+    from ..models import Model
 
 
 class Meta:
@@ -12,7 +16,7 @@ class Meta:
             Information about parameters, subclass of :cls:`ParamsInfo`
     """
 
-    cls: type
+    cls: Type["Model"]
     params: "ParamsInfo"
 
     @classmethod

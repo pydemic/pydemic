@@ -10,11 +10,10 @@ import sidekick as sk
 from sidekick import placeholder as _
 
 from .params_info import ParamsInfo
-from ..diseases import disease as get_disease
 from ..logging import log
 from ..params import Param, param, get_param
 from ..types import ImproperlyConfigured
-from ..utils import extract_keys, maybe_run
+from ..utils import extract_keys
 
 param_ = param
 

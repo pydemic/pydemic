@@ -2,7 +2,7 @@ import numpy as np
 
 from .abstract_seair import AbstractSEAIR
 from .ode_model import ODEModel
-from ..packages import np, click
+from ..packages import click
 
 
 class SEAIR(ODEModel, AbstractSEAIR):

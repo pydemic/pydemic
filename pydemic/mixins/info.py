@@ -3,6 +3,7 @@ from typing import Any, Sequence
 import pandas as pd
 
 from mundi import Region
+from ..utils import flatten_dict
 
 
 class Info:

@@ -7,6 +7,7 @@ def test(ctx, all=False):
     if all:
         ctx.run("pytest --cov", pty=True)
         ctx.run("black --check .")
+        ctx.run("flake8")
         ctx.run("pycodestyle")
 
 

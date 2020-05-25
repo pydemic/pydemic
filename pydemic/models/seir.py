@@ -1,5 +1,5 @@
 import numpy as np
-from ..packages import np, click
+from ..packages import click
 
 from .abstract_seir import AbstractSEIR
 from .ode_model import ODEModel

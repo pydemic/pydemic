@@ -3,7 +3,7 @@ from typing import Optional
 import pandas as pd
 
 import mundi
-from ..utils import extract_keys, coalesce
+from ..utils import extract_keys
 
 INIT_KEYWORDS = frozenset(["region", "population", "age_distribution", "age_pyramid"])
 

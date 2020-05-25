@@ -1,3 +1,4 @@
+# flake8: noqa
 from .info import Info, RegionalInfo
 from .meta_info import Meta
 from .params_info import ParamsInfo

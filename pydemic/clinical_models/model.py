@@ -68,7 +68,7 @@ class ClinicalModel(Model, ABC):
         name = self.DATA_ALIASES.get(name, name)
         try:
             return super().get_data(name)
-        except ValueError as e:
+        except ValueError:
             return self.infection_model.get_data(name)
 
     # Basic columns

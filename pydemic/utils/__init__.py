@@ -1,3 +1,4 @@
+# flake8: noqa
 import sidekick as _sk
 
 from .datetime import today, now

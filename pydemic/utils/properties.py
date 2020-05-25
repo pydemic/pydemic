@@ -65,7 +65,6 @@ class param_transform(property):
 
     def __init__(self, prop_name, read, write=None):
         read = sk.extract_function(read)
-        param = self
 
         if write is not None:
             write = sk.extract_function(write)

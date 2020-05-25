@@ -1,3 +1,4 @@
+# flake8: noqa
 from .model import Model
 from .esir import eSIR
 from .eseir import eSEIR

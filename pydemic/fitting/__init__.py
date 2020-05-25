@@ -1,3 +1,4 @@
+# flake8: noqa
 from .epidemic_curves import infectious_curve, sir_curves, seir_curves, seair_curves
 from .exponential_growth import growth_factor, exponential_extrapolation
 from .smoothing import smoothed_diff

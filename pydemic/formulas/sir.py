@@ -82,7 +82,7 @@ def state_from_cases(population, cases, R0):
     """
     Initialize the 3 components of a SIR model from cases and population.
     """
-    I = infectious_from_cases.formula(cases, R0)
+    I = infectious_from_cases.formula(cases, R0)  # noqa: E754
     R = cases - I
     S = population - I - R
     return np.array([S, I, R])
