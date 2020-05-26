@@ -120,8 +120,8 @@ def slugify(st, suffixes=(), prefixes=()):
     the resulting string.
     """
     st = st.lower()
-    st = re.sub(r"\s+", "-", st)
-    st = re.sub(r"[^\w]", "", st)
+    st = re.sub(r"[\s_]+", "-", st)
+    st = re.sub(r"[^\w-]", "", st)
     if suffixes:
         regex = "|".join(map(re.escape, suffixes))
         re.sub(fr"{regex}$", "", st)

@@ -85,7 +85,7 @@ class param_transform(property):
             value = write(value)
             self.set_param(prop_name, value)
 
-        args = (fget,) if write else (fget, fset)
+        args = (fget, fset) if write else (fget,)
         super().__init__(*args)
 
 

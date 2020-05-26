@@ -13,5 +13,7 @@ from .properties import (
     inverse_transform,
 )
 from .sequences import rpartition, flatten_dict, unflatten_dict, extract_keys, sliced
+from .dataframe import trim_zeros
+from .timeseries import accumulate_weekly, day_of_week, weekday_name, trim_weeks
 
 not_implemented = lambda *args: _sk.error(NotImplementedError)

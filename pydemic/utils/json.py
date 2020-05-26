@@ -45,10 +45,10 @@ def _(xs):
 def check_string(x):
     if isinstance(x, str):
         return x
-    elif isinstance(x, (int, float)):
-        return str(x)
     elif isinstance(x, bool):
         return str(x).lower()
+    elif isinstance(x, (int, float)):
+        return str(x)
     elif x is None:
         return "null"
     elif x is ...:

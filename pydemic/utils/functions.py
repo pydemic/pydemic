@@ -41,6 +41,10 @@ def coalesce(*args, raises=False):
     Return the first non-null value.
 
     If raises=True and no non-null value is found, raise a ValueError.
+
+    Examples:
+        >>> coalesce(None, "first", None, "second")
+        'first'
     """
     for arg in args:
         if arg is not None:
