@@ -3,6 +3,7 @@ import warnings
 from abc import ABC
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import sidekick as sk
 from sidekick import X
@@ -186,11 +187,20 @@ class Disease(ABC):
             ages = age_distribution
         return age_adjusted_average(ages, table[col])
 
-    def epidemic_curve(self, region, **kwargs) -> pd.DataFrame:
+    def epidemic_curve(self, region, new_cases=False, **kwargs) -> pd.DataFrame:
         """
         Load epidemic curve for the given region.
         """
-        return NotImplemented
+        data = self._epidemic_curve(region, **kwargs)
+
+        if new_cases:
+            values = np.diff(data, prepend=0, axis=0)
+            data = pd.DataFrame(values, index=data.index, columns=data.columns)
+
+        return data
+
+    def _epidemic_curve(self, region, **kwargs):
+        raise NotImplementedError
 
     #
     # Basic epidemiology

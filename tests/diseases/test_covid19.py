@@ -3,8 +3,8 @@ import pytest
 from pandas.testing import assert_frame_equal
 from pytest import approx
 
+from pydemic.api.covid19 import epidemic_curve
 from pydemic.diseases import covid19
-from pydemic.diseases.covid19_api import epidemic_curve
 
 
 class TestCovid19:

@@ -1,7 +1,7 @@
 from typing import Union
 
-from .covid19_disease import Covid19
-from .disease import Disease
+from .covid19_class import Covid19
+from .disease_class import Disease
 
 covid19 = Covid19("Covid-19")
 
@@ -16,6 +16,9 @@ def disease(name: Union[Disease, str]) -> Disease:
         >>> disease('covid-19')
         Covid19()
     """
+    if name is None:
+        # TODO: allow users to configure the default disease
+        return covid19
     if isinstance(name, Disease):
         return name
     try:

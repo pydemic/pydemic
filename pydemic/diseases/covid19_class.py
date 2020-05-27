@@ -1,4 +1,4 @@
-from .disease import Disease
+from .disease_class import Disease
 from .utils import lazy_stored_string
 
 
@@ -18,11 +18,11 @@ class Covid19(Disease):
         "verity": lazy_stored_string("covid-19/mortality-table-verity.txt")
     }
 
-    def epidemic_curve(self, region, api="auto", **kwargs):
+    def _epidemic_curve(self, region, api="auto", **kwargs):
         """
         Load epidemic curve for the given region from the internet.
         """
-        from .covid19_api import epidemic_curve
+        from ..api.covid19 import epidemic_curve
 
         return epidemic_curve(region, api, **kwargs)
 

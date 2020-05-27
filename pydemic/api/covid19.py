@@ -1,3 +1,6 @@
+import time
+from functools import lru_cache
+
 import pandas as pd
 import requests
 import sidekick as sk
@@ -6,15 +9,25 @@ import mundi
 from mundi import transforms
 from ..cache import ttl_cache
 from ..logging import log
+from ..utils import today
 
 HOURS = 3600
+TIMEOUT = 6 * HOURS
 EPIDEMIC_CURVES_APIS = {}
+MOBILITY_DATA_APIS = {}
 
 
-def register_api(key):
+def epidemic_curve_api(key):
     return lambda fn: EPIDEMIC_CURVES_APIS.setdefault(key, fn)
 
 
+def mobility_data_api(key):
+    return lambda fn: MOBILITY_DATA_APIS.setdefault(key, fn)
+
+
+#
+# Epidemic curves
+#
 def epidemic_curve(region, api="auto", extra=False, **kwargs):
     """
     Universal interface to all epidemic curve loaders.
@@ -29,7 +42,7 @@ def epidemic_curve(region, api="auto", extra=False, **kwargs):
     return data if extra else data[["cases", "deaths"]]
 
 
-@register_api("auto")
+@epidemic_curve_api("auto")
 def auto_api(code, **kwargs):
     """
     Select best API to load according to region code.
@@ -41,8 +54,8 @@ def auto_api(code, **kwargs):
     raise ValueError(f"no API can load region with code: {code}")
 
 
-@register_api("corona-api.com")
-@ttl_cache("covid-19", timeout=6 * HOURS)
+@epidemic_curve_api("corona-api.com")
+@ttl_cache("covid-19", timeout=TIMEOUT)
 @sk.retry(10, sleep=0.5)
 def corona_api(code) -> pd.DataFrame:
     """
@@ -58,7 +71,7 @@ def corona_api(code) -> pd.DataFrame:
     return df.sort_index()
 
 
-@register_api("brasil.io")
+@epidemic_curve_api("brasil.io")
 def brasil_io(code):
     cases = brasil_io_cases()
     cases = cases[cases["id"] == code].drop(columns="id")
@@ -66,7 +79,7 @@ def brasil_io(code):
     return cases.set_index("date").sort_index()
 
 
-@ttl_cache("covid-19", timeout=12 * HOURS)
+@ttl_cache("covid-19", timeout=TIMEOUT)
 @sk.retry(10, sleep=0.5)
 def brasil_io_cases() -> pd.DataFrame:
     """
@@ -110,5 +123,89 @@ def brasil_io_cases() -> pd.DataFrame:
     )
 
 
+#
+# Mobility data
+#
+@ttl_cache("covid-19", timeout=TIMEOUT)
+@sk.retry(10, sleep=0.5)
+def google_mobility_data(cli=False):
+    """
+    Download google mobility data
+    """
+    url = f"https://www.gstatic.com/covid19/mobility/Global_Mobility_Report.csv"
+
+    log.info(f"Downloading google mobility data {today()}")
+    t0 = time.time()
+    data = requests.get(url)
+    log.info(f"Download finished after {time.time() - t0:0.2} seconds")
+
+    data_cols = ["retail", "grocery", "parks", "transit", "work", "residential"]
+
+    df = pd.read_csv(data.content.decode("utf8")).rename(
+        {
+            "retail_and_recreation_percent_change_from_baseline": "retail",
+            "grocery_and_pharmacy_percent_change_from_baseline": "grocery",
+            "parks_percent_change_from_baseline": "parks",
+            "transit_stations_percent_change_from_baseline": "transit",
+            "workplaces_percent_change_from_baseline": "work",
+            "residential_percent_change_from_baseline": "residential",
+        },
+        axis=1,
+    )
+    df["date"] = pd.to_datetime(df["date"])
+    df[data_cols] = df[data_cols] / 100.0
+    return df
+
+
+def fix_google_mobility_data_region_codes(df):
+    print(df)
+    data = df[["country_region_code", "sub_region_1", "sub_region_2"]]
+    codes = data.apply(subregion_code)
+    print(codes)
+    return df
+
+
+@lru_cache(1024)
+def subregion_code(country, region, subregion):
+    region = region or None
+    subregion = subregion or None
+
+    # Check arbitrary mapping
+    mapping = google_mobility_map_codes()
+    try:
+        return mapping[country, region, subregion]
+    except KeyError:
+        pass
+
+    # Fasttrack pure-country codes
+    if not region:
+        return country
+
+    for name in (subregion, region):
+        try:
+            region = mundi.region(country_code=country, name=name)
+        except LookupError:
+            return region.id
+
+    raise ValueError(country, region, subregion)
+    return country + "-" + region
+
+
+@lru_cache(1)
+def google_mobility_map_codes() -> dict:
+    data = {}
+
+    # Brazilian states
+    for state in mundi.regions("BR", type="state"):
+        data["BR", f"State of {state}", None] = state.id
+    data["BR", "Federal District", None] = "BR-DF"
+
+    return data
+
+
 if __name__ == "__main__":
-    sk.import_later("..cli.api:covid19_api_downloader", package=__package__)()
+    # sk.import_later("..cli.api:covid19_api_downloader", package=__package__)()
+
+    df = google_mobility_data()
+    df = fix_google_mobility_data_region_codes(df)
+    print(df)

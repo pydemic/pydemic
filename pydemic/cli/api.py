@@ -16,7 +16,7 @@ def covid19_api_downloader(code, api, output, plot, log, daily, grid):
     """
     Load data of COVID-19 cases and deaths.
     """
-    from pydemic.diseases.covid19_api import epidemic_curve
+    from ..api.covid19 import epidemic_curve
 
     df = epidemic_curve(code, api)
     df.index = pd.to_datetime(df.index)
