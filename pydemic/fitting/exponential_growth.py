@@ -1,8 +1,10 @@
 from typing import Sequence
 
 import numpy as np
+import pandas as pd
 
 from ..types import ValueStd
+from ..utils import trim_zeros
 
 
 def growth_factor(ys: Sequence) -> ValueStd:
@@ -35,6 +37,51 @@ def growth_factor(ys: Sequence) -> ValueStd:
     else:
         std_r = float("inf")
     return ValueStd(mean_r, std_r)
+
+
+def growth_factors(data):
+    """
+    Compute growth factors for each column of ys in data frame.
+
+    Return a data frame with ["value", "std"] columns with the original columns
+    in the index.
+    """
+    growth_factors = {}
+    for key, col in data.items():
+        col = trim_zeros(col)
+        growth_factors[key] = growth_factor(col)
+
+    return pd.DataFrame(growth_factors, index=["value", "std"]).T
+
+
+def average_growth(results, tol=1e-9) -> ValueStd:
+    """
+    Compute average growth factor from sequence of results, weighting
+    by the inverse variance.
+
+    Args:
+        results:
+            A sequence of (value, std) tuples.
+        tol:
+            A normalization term to avoid problem with null variances.
+    """
+    if isinstance(results, pd.DataFrame):
+        results = results.values
+
+    growth = 0.0
+    weights = 0.0
+    cum_var = 0.0
+    N = 0
+
+    for (value, std) in results:
+        var = std * std + tol
+        weight = 1 / var
+        weights += weight
+        growth += weight * value
+        cum_var += var
+        N += 1
+
+    return ValueStd(growth / weights, np.sqrt(cum_var / N))
 
 
 def exponential_extrapolation(ys: Sequence, n: int, append=False) -> np.ndarray:
