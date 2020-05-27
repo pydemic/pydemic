@@ -28,10 +28,10 @@ class WithDataMixin(ABC):
 
     def __getitem__(self, item):
         if isinstance(item, tuple):
-            col, idx = item
+            first, idx = item
 
-            if isinstance(col, str):
-                col, _, transform = col.rpartition(":")
+            if isinstance(first, str):
+                col, _, transform = first.rpartition(":")
                 if col:
                     fn = self.data_transformer(transform)
                     return fn(col, idx)
@@ -42,15 +42,9 @@ class WithDataMixin(ABC):
                     except ValueError:
                         raise KeyError(item)
 
-            elif isinstance(item, list):
-                df = pd.DataFrame()
-                for col in item:
-                    series = self[col, idx]
-                    series.name = name = col.partition(":")[0]
-                    if name in df.columns:
-                        name = col
-                    df[name] = series
-                return df
+            elif isinstance(first, list):
+                data = [self[col, idx] for col in first]
+                return pd.concat(data, axis=1)
 
         elif isinstance(item, (str, list)):
             return self.__getitem__((item, None))

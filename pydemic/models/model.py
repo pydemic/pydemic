@@ -1,7 +1,7 @@
 import datetime
 from copy import copy
 from types import MappingProxyType
-from typing import Sequence, Callable, Mapping
+from typing import Sequence, Callable, Mapping, TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
@@ -26,6 +26,9 @@ NOW = datetime.datetime.now()
 TODAY = datetime.date(NOW.year, NOW.month, NOW.day)
 DAY = datetime.timedelta(days=1)
 pplt = sk.import_later("..plot", package=__package__)
+
+if TYPE_CHECKING:
+    from ..model_group import ModelGroup
 
 
 class Model(
@@ -85,7 +88,7 @@ class Model(
         else:
             self.disease_params = self.disease.params(**demography_opts)
 
-        # Init other mixinss
+        # Init other mixins
         WithParamsMixin.__init__(self, params, keywords=kwargs)
         WithInfoMixin.__init__(self)
         WithSummaryMixin.__init__(self)
@@ -141,6 +144,83 @@ class Model(
             setattr(new, k, v)
 
         return new
+
+    def split(self, n=None, **kwargs) -> "ModelGroup":
+        """
+        Create n copies of model, each one may override a different set of
+        parameters and return a ModelGroup.
+
+        Args:
+            n:
+                Number of copies in the resulting list. It can also be a sequence
+                of dictionaries with arguments to pass to the .copy() constructor.
+
+        Keyword Args:
+            Keyword arguments are passed to the `.copy()` method of the model. If
+            the keyword is a sequence, it applies the n-th component of the sequence
+            to the corresponding n-th model.
+        """
+
+        from ..model_group import ModelGroup
+
+        if n is None:
+            for k, v in kwargs.items():
+                if not isinstance(v, str) and isinstance(v, Sequence):
+                    n = len(v)
+                    break
+            else:
+                raise TypeError("cannot determine the group size from arguments")
+
+        if isinstance(n, int):
+            options = [{} for _ in range(n)]
+        else:
+            options = [dict(d) for d in n]
+        n: int = len(options)
+
+        # Merge option dicts
+        for k, v in kwargs.items():
+            if not isinstance(v, str) and isinstance(v, Sequence):
+                xs = v
+                m = len(xs)
+                if m != n:
+                    raise ValueError(
+                        f"sizes do not match: " f"{k} should be a sequence of {n} items, got {m}"
+                    )
+                for opt, x in zip(options, xs):
+                    opt.setdefault(k, x)
+            else:
+                for opt in options:
+                    opt.setdefault(k, v)
+
+        # Fix name
+        for opt in options:
+            try:
+                name = opt["name"]
+            except KeyError:
+                pass
+            else:
+                opt["name"] = name.format(**opt)
+
+        return ModelGroup(self.copy(**opt) for opt in options)
+
+    def split_children(self, options=(), **kwargs) -> "ModelGroup":
+        """
+        Similar to split, but split into the children of the given class.
+        """
+
+        from ..model_group import ModelGroup
+
+        if self.region is None:
+            raise ValueError("model is not bound to a region")
+
+        for k in self._params:
+            if k not in kwargs:
+                kwargs[k] = self.get_param(k)
+
+        for attr in ("disease",):
+            kwargs.setdefault(attr, getattr(self, attr))
+
+        return ModelGroup.from_children(self.region, type(self), **kwargs)
 
     def reset_data(self, date=None, **kwargs):
         """
