@@ -28,4 +28,8 @@ def ci(ctx):
     """
     Non-configurable task that is run in continuous integration.
     """
+    ctx.run("./cc-test-reporter before-build", pty=True)
     test(ctx, all=True, report_xml=True)
+    ctx.run(
+        "./cc-test-reporter after-build -r 7e76aeb0890556339111bab973b18d3678572fdb2c63ea3bb388f3933066756b"
+    )

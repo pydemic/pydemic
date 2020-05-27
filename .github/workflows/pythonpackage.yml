@@ -30,12 +30,6 @@ jobs:
           flit install
           curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
           chmod +x ./cc-test-reporter
-          ./cc-test-reporter before-build
-      - name: Run tests
+      - name: Run tests and CI pipeline
         run: |
           inv ci
-      - name: Coverage
-        env:
-          CC_TEST_REPORTER_ID: 7e76aeb0890556339111bab973b18d3678572fdb2c63ea3bb388f3933066756b
-        run: |
-          ./cc-test-reporter after-build
