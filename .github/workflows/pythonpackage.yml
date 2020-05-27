@@ -33,10 +33,9 @@ jobs:
           ./cc-test-reporter before-build
       - name: Run tests
         run: |
-          inv test --all
+          inv ci
       - name: Coverage
         env:
           CC_TEST_REPORTER_ID: 7e76aeb0890556339111bab973b18d3678572fdb2c63ea3bb388f3933066756b
         run: |
-          inv cov
-          cc-test-reporter after-build
+          ./cc-test-reporter after-build

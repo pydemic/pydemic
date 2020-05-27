@@ -8,7 +8,7 @@ import mundi
 import mundi_demography as mdm
 import mundi_healthcare as mhc
 
-from pydemic_jupyter.all import *
+from .jupyter import *
 from .packages import *
 from .models import *
 from .utils import *

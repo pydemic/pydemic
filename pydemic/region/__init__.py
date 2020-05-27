@@ -1,3 +1,4 @@
+# flake8: noqa
 from mundi import Region
 from mundi_demography import age_distribution, age_pyramid, population
 from mundi_healthcare import (

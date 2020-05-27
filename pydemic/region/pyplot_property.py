@@ -1,4 +1,6 @@
+from pydemic.utils import trim_weeks
 from .base import RegionProperty, cached
+from .. import plot as plt
 
 
 class PyplotProperty(RegionProperty):
@@ -11,4 +13,4 @@ class PyplotProperty(RegionProperty):
         """
         data = self.region.pydemic.epidemic_curves(disease, new_cases=True)
         data = trim_weeks(data)
-        return plot_weekday_rate(data, **kwargs)
+        return plt.weekday_rates(data, **kwargs)

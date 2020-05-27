@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Iterable
 import pandas as pd
 
 if TYPE_CHECKING:
-    from ..models import Model
+    from ..models import Model  # noqa: F401
 
 
 def map_models(fn: callable, models: Iterable["Model"], key=operator.attrgetter("name")):
