@@ -27,9 +27,9 @@ requires = [
 dev = [
   "black",
   "invoke~=1.4",
-  "pycodestyle~=2.5",
-  "coverage~=5.0",
+  "flake8",
   "pytest~=5.4",
+  "pytest-cov~=2.8",
 ]
 
 [tool.black]
