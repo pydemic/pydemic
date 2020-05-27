@@ -1,10 +1,75 @@
+from gettext import gettext as _
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from .. import plot as plt
-from ..diseases import disease as get_disease
+from . import helpers
 from .. import fitting as fit
+from ..diseases import disease as get_disease
 from ..utils import trim_weeks, weekday_name, accumulate_weekly
+
+
+def cases_and_deaths(
+    data: pd.DataFrame,
+    dates: bool = False,
+    ax: plt.Axes = None,
+    smooth: bool = True,
+    cases: str = "cases",
+    deaths: str = "deaths",
+    **kwargs,
+) -> plt.Axes:
+    """
+    A simple chart showing observed new cases cases as vertical bars and
+    a smoothed out prediction of this curve.
+
+    Args:
+        data:
+            A dataframe with ["cases", "deaths"] columns.
+        dates:
+            If True, show dates instead of days in the x-axis.
+        ax:
+            An explicit matplotlib axes.
+        smooth:
+            If True, superimpose a plot of a smoothed-out version of the cases
+            curve.
+        cases:
+        deaths:
+            Name of the cases/deaths columns in the dataframe.
+    """
+
+    if not dates:
+        data = data.reset_index(drop=True)
+
+    # Smoothed data
+    col_names = {cases: _("Cases"), deaths: _("Deaths")}
+    if smooth:
+        from pydemic import fitting as fit
+
+        smooth = pd.DataFrame(
+            {
+                _("{} (smooth)").format(col_names[cases]): fit.smoothed_diff(data[cases]),
+                _("{} (smooth)").format(col_names[deaths]): fit.smoothed_diff(data[deaths]),
+            },
+            index=data.index,
+        )
+        ax = smooth.plot(legend=False, lw=2, ax=ax)
+
+    # Prepare cases dataframe and plot it
+    kwargs.setdefault("alpha", 0.5)
+    new_cases = data.diff().fillna(0)
+    new_cases = new_cases.rename(col_names, axis=1)
+    ax: plt.Axes = new_cases.plot.bar(width=1.0, ax=ax, **kwargs)
+
+    # Fix xticks
+    periods = 7 if dates else 10
+    xticks = ax.get_xticks()
+    labels = ax.get_xticklabels()
+    ax.set_xticks(xticks[::periods])
+    ax.set_xticklabels(labels[::periods])
+    ax.tick_params("x", rotation=0)
+    ax.set_ylim(1, None)
+    return ax
 
 
 def weekday_rates(
@@ -54,7 +119,7 @@ def weekday_rates(
         ax.plot(X, trend, trend_style)
 
     elif trend == "cte" or trend is True:
-        plt.mark_x(1 / 7, trend_style)
+        helpers.mark_x(1 / 7, trend_style)
 
     elif trend is not False:
         raise ValueError("invalid trending method")

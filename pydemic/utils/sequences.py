@@ -34,7 +34,8 @@ def unflatten_dict(dic: dict, sep=".") -> dict:
     Invert the effect of :func:`flatten_dict`
     """
 
-    items = list(reversed(dic.items()))
+    items = list(dic.items())
+    items.reverse()
     out = {}
     while items:
         k, v = items.pop()

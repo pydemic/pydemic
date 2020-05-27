@@ -45,7 +45,7 @@ def fmt(n, empty="-"):
 
     if m < 0.01:
         e = int(-log10(m)) + 1
-        return "{:.3n}".format(n * 10 ** e) + f"e-%02d" % e
+        return "{:.3n}".format(n * 10 ** e) + "e-%02d" % e
     for k, div, fn, fmt_, suffix in HUMANIZED_SUFFIXES:
         if m < k:
             dec = fn(m) / div

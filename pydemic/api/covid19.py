@@ -132,7 +132,7 @@ def google_mobility_data(cli=False):
     """
     Download google mobility data
     """
-    url = f"https://www.gstatic.com/covid19/mobility/Global_Mobility_Report.csv"
+    url = "https://www.gstatic.com/covid19/mobility/Global_Mobility_Report.csv"
 
     log.info(f"Downloading google mobility data {today()}")
     t0 = time.time()

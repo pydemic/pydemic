@@ -7,12 +7,13 @@ from mundi_healthcare import (
     icu_capacity,
     icu_capacity_public,
 )
+from .base import RegionProperty
 from .pydemic_property import PydemicProperty
 from .pyplot_property import PyplotProperty
 
 
 class RegionT(Region):
-    plt: PyplotProperty
+    plot: PyplotProperty
     pydemic: PydemicProperty
 
 
