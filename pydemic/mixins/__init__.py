@@ -1,5 +1,5 @@
 # flake8: noqa
-from .info import Info, RegionalInfo
+from .info import Info
 from .meta_info import Meta
 from .params_info import ParamsInfo
 from .results import Results

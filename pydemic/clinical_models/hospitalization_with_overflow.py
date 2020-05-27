@@ -153,8 +153,8 @@ class HospitalizationWithOverflow(HospitalizationWithDelay):
                 return date
         return None
 
-    def get_result_dates__icu_overflow(self):
+    def get_results_dates__icu_overflow(self):
         return self.get_overflow_date("critical", self.icu_surge_capacity)
 
-    def get_result_dates__hospital_overflow(self):
+    def get_results_dates__hospital_overflow(self):
         return self.get_overflow_date("severe", self.hospital_surge_capacity)

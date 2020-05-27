@@ -1,12 +1,12 @@
 from abc import ABC
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
-from mundi import Region
 from .results import Results
 
 if TYPE_CHECKING:
     from .meta_info import Meta
+    from ..models import Model
 
 
 class WithResultsMixin(ABC):
@@ -19,11 +19,6 @@ class WithResultsMixin(ABC):
     """
 
     _meta: "Meta"
-    iter: int
-    disease_params: Any
-    region: Region
-    get_param: callable
-    RESULT_REGION_KEYS = ("population", "age_distribution", "age_pyramid")
     RESULT_DATES_KEYS = ("start", "end", "peak")
 
     @property
@@ -37,7 +32,7 @@ class WithResultsMixin(ABC):
     def __getitem__(self, item):
         raise NotImplementedError
 
-    def get_result_keys_data(self):
+    def get_results_keys_data(self):
         """
         Yield keys for the result["data"] dict.
         """
@@ -45,7 +40,7 @@ class WithResultsMixin(ABC):
         yield "cases"
         yield "attack_rate"
 
-    def get_result_value_data(self, key):
+    def get_results_value_data(self, key):
         """
         Return value for model.result["data.<key>"] queries.
         """
@@ -54,53 +49,25 @@ class WithResultsMixin(ABC):
             return (population - self["susceptible:final"]) / population
         return self[f"{key}:final"]
 
-    def get_result_keys_params(self):
+    def get_results_keys_params(self):
         """
         Yield keys for the result["params"] dict.
         """
         yield from self._meta.params.primary
 
-    def get_result_value_params(self, key):
+    def get_results_value_params(self: "Model", key):
         """
         Return value for model.result["params.<key>"] queries.
         """
         return self.get_param(key)
 
-    def get_result_keys_disease(self):
-        """
-        Yield keys for the result["disease"] dict.
-        """
-        yield from self.disease_params
-
-    def get_result_value_disease(self, key):
-        """
-        Return value for model.result["disease.<key>"] queries.
-        """
-        return getattr(self.disease_params, key)
-
-    def get_result_keys_region(self):
-        """
-        Yield keys for the result["region"] dict.
-        """
-        if self.region is None:
-            return
-        yield from self.RESULT_REGION_KEYS
-
-    def get_result_value_region(self, key):
-        """
-        Handle model.result["region.*"] queries.
-        """
-        if key in self.RESULT_REGION_KEYS:
-            return getattr(self, key)
-        return KeyError(key)
-
-    def get_result_keys_dates(self):
+    def get_results_keys_dates(self):
         """
         Yield keys for the result["dates"] dict.
         """
         yield from self.RESULT_DATES_KEYS
 
-    def get_result_value_dates(self, key):
+    def get_results_value_dates(self: "Model", key):
         """
         Return value for model.result["dates.<key>"] queries.
         """

@@ -8,7 +8,6 @@ from pydemic.models import SIR
 class TestResults:
     def test_results(self):
         approx = lambda x: _approx(x, rel=0.005)
-        disease = get_disease("covid-19")
         m = SIR(disease="covid-19", region="BR")
         m.set_ic(cases=1e6)
         m.run(60)
@@ -35,13 +34,41 @@ class TestResults:
         assert m.results["params.infectious_period"] == m.infectious_period
         assert m.results["params"] == approx({"R0": 2.74, "infectious_period": 3.47})
 
+        # Dates
+        dates = m.results["dates"]
+        assert dates["start"] < dates["peak"] < dates["end"]
+
+    def test_can_store_information_in_results(self):
+        m = SIR(disease="covid-19", region="BR")
+        m.run(10)
+
+        expect = {"bar": 42, "spam": "eggs"}
+        m.results["foo.bar"] = 42
+        m.results["foo.spam"] = "eggs"
+        assert m.results["foo"] == expect
+        assert "foo" in m.results.keys()
+
+        assert "foo" in m.results.to_dict()
+        assert "foo.bar" in m.results.to_dict(flat=True)
+
+        m.run(10)
+        assert m.results.get("foo") is None
+
+
+class TestInfo:
+    def test_info(self):
+        approx = lambda x: _approx(x, rel=0.005)
+        disease = get_disease("covid-19")
+        m = SIR(disease="covid-19", region="BR")
+        m.set_ic(cases=1e6)
+        m.run(60)
+
         # Disease
-        assert m.results["disease.CFR"] == approx(disease.CFR(region="BR"))
-        assert m.results["disease.IFR"] == approx(disease.IFR(region="BR"))
-        assert m.results["disease.infectious_period"] == approx(
-            disease.infectious_period(region="BR")
-        )
-        assert set(m.results["disease"]) == {
+        infectious_period = disease.infectious_period(region="BR")
+        assert m.info["disease.CFR"] == approx(disease.CFR(region="BR"))
+        assert m.info["disease.IFR"] == approx(disease.IFR(region="BR"))
+        assert m.info["disease.infectious_period"] == approx(infectious_period)
+        assert set(m.info["disease"]) == {
             "R0",
             "case_fatality_ratio",
             "critical_delay",
@@ -69,29 +96,15 @@ class TestResults:
 
         # Region
         br = mundi.region("BR")
-        keys = {"population", "age_distribution", "age_pyramid"}
+        keys = {
+            "population",
+            "age_distribution",
+            "age_pyramid",
+            "hospital_capacity",
+            "icu_capacity",
+        }
 
-        assert m.results["region.population"] == br.population
-        assert all(m.results["region.age_distribution"] == br.age_distribution)
-        assert all(m.results["region.age_pyramid"] == br.age_pyramid)
-        assert set(m.results["region"]) == keys
-
-        # Dates
-        dates = m.results["dates"]
-        assert dates["start"] < dates["peak"] < dates["end"]
-
-    def test_can_store_information_in_results(self):
-        m = SIR(disease="covid-19", region="BR")
-        m.run(10)
-
-        expect = {"bar": 42, "spam": "eggs"}
-        m.results["foo.bar"] = 42
-        m.results["foo.spam"] = "eggs"
-        assert m.results["foo"] == expect
-        assert "foo" in m.results.keys()
-
-        assert "foo" in m.results.to_dict()
-        assert "foo.bar" in m.results.to_dict(flat=True)
-
-        m.run(10)
-        assert m.results.get("foo") is None
+        assert m.info["region.population"] == br.population
+        assert all(m.info["region.age_distribution"] == br.age_distribution)
+        assert all(m.info["region.age_pyramid"] == br.age_pyramid)
+        assert set(m.info["region"]) == keys
