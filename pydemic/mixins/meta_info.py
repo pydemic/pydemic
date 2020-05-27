@@ -10,13 +10,11 @@ from typing import (
     Sequence,
 )
 
-import sidekick as sk
-
 from .params_info import ParamsInfo
 from .. import utils
 
 if TYPE_CHECKING:
-    from ..models import Model
+    from ..models import Model  # noqa: F401
 
 T = TypeVar("T")
 

@@ -1,11 +1,11 @@
 from collections import Mapping
-from typing import TYPE_CHECKING, Iterator, Sequence, Set
+from typing import TYPE_CHECKING, Iterator, Set
 
 import pandas as pd
 
 if TYPE_CHECKING:
-    from .with_results import WithResultsMixin  # noqa: F421
-    from ..models import Model  # noqa: F421
+    from .with_results import WithResultsMixin  # noqa: F401
+    from ..models import Model  # noqa: F401
 
 
 class Results(Mapping):
