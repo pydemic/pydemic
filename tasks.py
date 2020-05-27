@@ -13,4 +13,4 @@ def test(ctx, all=False):
 
 @task
 def cov(ctx, report=True):
-    ctx.run("pytest --cov --cov-report=html", pty=True)
+    ctx.run("pytest --cov --cov-report=html --cov-report=term", pty=True)
