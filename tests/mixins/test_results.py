@@ -79,3 +79,19 @@ class TestResults:
         # Dates
         dates = m.results["dates"]
         assert dates["start"] < dates["peak"] < dates["end"]
+
+    def test_can_store_information_in_results(self):
+        m = SIR(disease="covid-19", region="BR")
+        m.run(10)
+
+        expect = {"bar": 42, "spam": "eggs"}
+        m.results["foo.bar"] = 42
+        m.results["foo.spam"] = "eggs"
+        assert m.results["foo"] == expect
+        assert "foo" in m.results.keys()
+
+        assert "foo" in m.results.to_dict()
+        assert "foo.bar" in m.results.to_dict(flat=True)
+
+        m.run(10)
+        assert m.results.get("foo") is None
