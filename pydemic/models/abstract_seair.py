@@ -10,14 +10,9 @@ class AbstractSEAIR(Base, ABC):
     Abstract base class for all SEIR-based models.
     """
 
-    DATA_ALIASES = {
-        "S": "susceptible",
-        "E": "exposed",
-        "A": "asymptomatic",
-        "I": "infectious",
-        "R": "recovered",
-    }
-    model_name = "SEAIR"
+    class Meta:
+        model_name = "SEAIR"
+        data_aliases = {"A": "asymptomatic"}
 
     # Basic epidemiological parameters
     rho = param_property("rho", default=1.0)

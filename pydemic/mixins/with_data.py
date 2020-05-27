@@ -7,7 +7,7 @@ import sidekick as sk
 from .data_transforms import DATA_TRANSFORMS, MODEL_TRANSFORMS
 
 if TYPE_CHECKING:
-    from ..models.model_meta import Meta
+    from .meta_info import Meta
 
 
 class WithDataMixin(ABC):
@@ -16,11 +16,10 @@ class WithDataMixin(ABC):
     information about a simulation.
     """
 
+    _meta: "Meta"
     data: pd.DataFrame
     times: pd.Index
-    _meta: "Meta"
     get_param: Callable[[str], float]
-    DATA_ALIASES: dict  # FIXME: remove this!
 
     def __init__(self, data=None):
         if data is not None:
@@ -70,7 +69,7 @@ class WithDataMixin(ABC):
             return method(idx)
 
         # The next step is to check if requested column is in the state space
-        name = self.DATA_ALIASES.get(name, name)
+        name = self._meta.data_aliases.get(name, name)
         try:
             if idx is None:
                 data = self.data[name]

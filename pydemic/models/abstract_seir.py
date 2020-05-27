@@ -14,8 +14,9 @@ class AbstractSEIR(Base):
     Abstract base class for all SEIR-based models.
     """
 
-    DATA_ALIASES = {"S": "susceptible", "E": "exposed", "I": "infectious", "R": "recovered"}
-    model_name = "SEIR"
+    class Meta:
+        model_name = "SEIR"
+        data_aliases = {"E": "exposed", "exposed": None}
 
     # Basic epidemiological parameters
     params = params.epidemic.DEFAULT

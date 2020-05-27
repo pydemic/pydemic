@@ -13,9 +13,10 @@ class ClinicalModel(Model, ABC):
     models the clinical history of patients.
     """
 
-    CLINICAL_COMPONENTS = ("hospitalized_cases", "hospitalized", "deaths")
-    DATA_ALIASES = {"H": "hospitalized", "D": "deaths"}
-    model_name = "Clinical"
+    class Meta:
+        model_name = "Clinical"
+        data_aliases = {"H": "hospitalized", "D": "deaths"}
+        plot_columns = ("hospitalized_cases", "hospitalized", "deaths")
 
     # Delegates (population parameters)
     population = sk.delegate_to("infection_model")
@@ -65,7 +66,7 @@ class ClinicalModel(Model, ABC):
     # Data accessors
     #
     def get_column(self, name, idx):
-        name = self.DATA_ALIASES.get(name, name)
+        name = self._meta.data_aliases.get(name, name)
         try:
             return super().get_column(name, idx)
         except ValueError:
@@ -206,7 +207,7 @@ class ClinicalModel(Model, ABC):
     def plot(self, components=None, *, show=False, **kwargs):
         if components is None:
             self.infection_model.plot(**kwargs)
-            components = self.CLINICAL_COMPONENTS
+            components = self._meta.plot_columns
         super().plot(components, show=show, **kwargs)
 
 

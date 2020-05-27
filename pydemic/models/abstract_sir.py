@@ -17,10 +17,8 @@ class AbstractSIR(Model, ABC):
     Abstract base class for all SIR-based models.
     """
 
-    DATA_ALIASES = {"S": "susceptible", "I": "infectious", "R": "recovered"}
-    model_name = "SIR"
-
     class Meta:
+        model_name = "SIR"
         data_aliases = {
             "S": "susceptible",
             "I": "infectious",

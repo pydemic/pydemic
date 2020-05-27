@@ -1,7 +1,12 @@
 from pydemic.models import SIR
+from pydemic.models.abstract_sir import AbstractSIR
 
 
 class TestMetaClass:
+    def test_meta_class_for_derived_classes(self):
+        assert AbstractSIR._meta.model_name == "SIR"
+        assert SIR._meta.model_name == "SIR"
+
     def test_meta_class_introspection(self):
         meta = SIR._meta
 

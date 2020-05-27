@@ -43,9 +43,9 @@ class Model(
     Base class for all models.
     """
 
-    # Constants
-    DATA_ALIASES = {}
-    model_name = "Model"
+    class Meta:
+        model_name = "Model"
+        data_aliases = {}
 
     # Initial values
     state: np.ndarray = None
@@ -280,13 +280,17 @@ class Model(
         """
         Set initial conditions.
         """
-        keys = {*self.DATA_ALIASES, *self.DATA_ALIASES.values()}
-        components = extract_keys(keys, kwargs)
-
         if self.state is None:
             if state is None:
                 state = self.initial_state(**kwargs)
             self.state = np.array(state, dtype=float)
+
+        alias = self._meta.data_aliases
+        for k, v in list(kwargs.items()):
+            if k in alias:
+                del kwargs[k]
+                kwargs[alias[k]] = v
+        components = extract_keys(self._meta.variables, kwargs)
 
         for k, v in components.items():
             idx = self._meta.component_index(k)
@@ -297,7 +301,7 @@ class Model(
         Force a dataframe into simulation state.
         """
         data = data.copy()
-        data.columns = [self.DATA_ALIASES.get(c, c) for c in data.columns]
+        data.columns = [self._meta.data_aliases.get(c, c) for c in data.columns]
 
         self.set_ic(state=data.iloc[0])
         self.data = data.reset_index(drop=True)
@@ -312,7 +316,7 @@ class Model(
         """
         if cases is not None:
             kwargs.setdefault("population", self.population)
-            return formulas.initial_state(self.model_name, cases, self, **kwargs)
+            return formulas.initial_state(self._meta.model_name, cases, self, **kwargs)
         return self._initial_state()
 
     def _initial_state(self):
@@ -451,7 +455,7 @@ class Model(
             data = self[col]
             return data
 
-        components = self.DATA_ALIASES.values() if components is None else components
+        components = self._meta.variables if components is None else components
         for col in components:
             data = get_column(col)
             data.plot(label=col.title().replace("-", " ").replace("_", " "), **kwargs)
@@ -468,6 +472,6 @@ def make_dataframe(model: Model):
     Create the initial dataframe for the given model.
     """
     data = [model.state]
-    cols = model._meta.data_columns
+    cols = model._meta.variables
     index = [model.time]
     return pd.DataFrame(data, columns=cols, index=index)

@@ -1,4 +1,14 @@
-from typing import TYPE_CHECKING, Type, Tuple, Iterator
+from typing import (
+    TYPE_CHECKING,
+    Type,
+    Tuple,
+    Iterator,
+    Dict,
+    FrozenSet,
+    Iterable,
+    TypeVar,
+    Sequence,
+)
 
 import sidekick as sk
 
@@ -7,6 +17,8 @@ from .. import utils
 
 if TYPE_CHECKING:
     from ..models import Model
+
+T = TypeVar("T")
 
 
 class Meta:
@@ -19,70 +31,65 @@ class Meta:
     """
 
     cls: Type["Model"]
+    model_name: str
     params: "ParamsInfo"
     variables: Tuple[str]
+    data_aliases: Dict[str, str]
+    plot_columns: FrozenSet[str]
     ndim: int
 
     @classmethod
-    def from_arguments(cls, kind, bases, meta):
+    def from_arguments(cls, kind, meta):
         """
         Create Meta instance for the given kind from the list of base classes and
         an inner Django-like Meta class declaration.
         """
 
-        kwargs = meta_arguments(bases, meta)
+        if meta is not None:
+            ns = vars(meta)
+            kwargs = {k: v for k, v in ns.items() if not k.startswith("_")}
+        else:
+            kwargs = {}
         return Meta(kind, **kwargs)
 
     def __init__(self, cls, **kwargs):
+        cls._meta = self
         self.cls = cls
-        self.explicit_kwargs = kwargs
+        self.explicit_kwargs = kwargs.copy()
         self.variables = tuple(p.name for p in sorted(iter_state_variables(cls)))
         self.ndim = len(self.variables)
         self.params = ParamsInfo(cls)
         self.data_aliases = data_aliases(cls, kwargs.pop("data_aliases", None))
 
-        if kwargs:
-            raise TypeError(f"invalid arguments: {set(kwargs)}")
+        # Keyword variables
+        keywords = explicit_keywords(cls, self=True)
+        self.model_name = keywords.get("model_name", "Model")
 
-    @sk.lazy
-    def component_index(self):
-        cls = self.cls
-        if hasattr(cls, "DATA_COLUMNS"):
-            items = zip(cls.DATA_COLUMNS, cls.DATA_COLUMNS)
-        else:
-            items = cls.DATA_ALIASES.items()
+        # Plot columns
+        new = kwargs.pop("plot_columns", (...,))
+        bases = get_base_meta_attr(cls, "plot_columns", ())
+        self.plot_columns = frozenset(merge_with_ellipsis(new, bases))
 
-        idx_map = {}
-        for i, (k, v) in enumerate(items):
-            idx_map[k] = idx_map[v] = i
-        return idx_map
+        # Check keyword args
+        invalid = set(kwargs) - {"model_name", "plot_columns"}
+        if invalid:
+            raise TypeError(f"invalid arguments: {invalid}")
 
-    @sk.lazy
-    def data_columns(self):
-        cls = self.cls
-        try:
-            return tuple(getattr(cls, "DATA_COLUMNS"))
-        except AttributeError:
-            return tuple(cls.DATA_ALIASES.values())
+    def __repr__(self):
+        return f"<{self.cls.__name__}._meta object>"
 
 
-def meta_arguments(bases, meta_declaration):
+def explicit_keywords(cls, self=False):
     """
-    Extract keyword arguments to pass to a Meta declaration.
+    Extract explicit keyword arguments from meta object from all parent types.
     """
 
     kwargs = {}
-    for base in reversed(bases):
-        try:
-            meta: Meta = base._meta
-        except AttributeError:
-            continue
-        else:
-            kwargs.update(meta.explicit_kwargs)
+    metas = list(iter_metas(cls, self=self))
 
-    if meta_declaration is not None:
-        ns = vars(meta_declaration)
-        kwargs.update({k: v for k, v in ns.items() if not k.startswith("_")})
+    for meta in reversed(metas):
+        kwargs.update(meta.explicit_kwargs)
+
     return kwargs
 
 
@@ -96,6 +103,33 @@ def iter_state_variables(cls) -> Iterator[utils.state_property]:
             yield value
 
 
+def iter_metas(cls: Type["Model"], self=False):
+    """
+    Iterate over _meta objects of parent classes.
+    """
+    if self:
+        yield cls._meta
+
+    for base in cls.mro()[1:]:
+        try:
+            yield base._meta
+        except AttributeError:
+            pass
+
+
+def get_base_meta_attr(cls, prop, default):
+    """
+    Return attribute from the _meta attribute of a base class.
+    """
+
+    for meta in iter_metas(cls):
+        try:
+            return meta.explicit_kwargs[prop]
+        except KeyError:
+            pass
+    return default
+
+
 def data_aliases(cls, extra=None):
     """
     Return the data_aliases meta attribute for the given class.
@@ -104,7 +138,6 @@ def data_aliases(cls, extra=None):
     """
     out = {}
     for base in reversed(cls.__bases__):
-        print(base)
         try:
             out.update(base._meta.data_aliases)
         except AttributeError:
@@ -117,3 +150,14 @@ def data_aliases(cls, extra=None):
         if v is None:
             del out[k]
     return out
+
+
+def merge_with_ellipsis(xs: Iterable[T], extra: Sequence[T]) -> Iterator[T]:
+    """
+    Yield xs, but extra whenever encounters an ellipsis in xs.
+    """
+    for x in xs:
+        if x is ...:
+            yield from extra
+        else:
+            yield x
