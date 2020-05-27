@@ -1,11 +1,14 @@
 import datetime
 
 
-def today() -> datetime.date:
+def today(n=0) -> datetime.date:
     """
     Return the date today.
     """
-    return now().date()
+    today = now().date()
+    if n:
+        return today + datetime.timedelta(days=n)
+    return today
 
 
 def now() -> datetime.datetime:

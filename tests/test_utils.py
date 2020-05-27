@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from numpy.testing import assert_array_equal
-from pandas.testing import assert_frame_equal, assert_series_equal
+from pandas.testing import assert_frame_equal
 
 from pydemic import utils
 
@@ -90,6 +90,9 @@ class TestUtilityFunctions:
     def test_text_functions(self):
         assert utils.indent("foo\nbar", 2) == "  foo\n  bar"
         assert utils.slugify("Foo Bar") == "foo-bar"
+
+    def test_format_args(self):
+        assert utils.format_args(1, 2, op="sum") == "1, 2, op='sum'"
 
 
 class TestDatetime:

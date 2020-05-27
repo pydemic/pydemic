@@ -1,5 +1,6 @@
 import re
 from gettext import gettext as _
+from itertools import chain
 from math import log10
 
 import numpy as np
@@ -142,3 +143,16 @@ def safe_int(x, default=0):
         if not np.isfinite(x):
             return default
         raise
+
+
+def format_args(*args, **kwargs):
+    """
+    Return a nice string representation of the given arguments.
+
+    Examples:
+        >>> format_args(1, 2, op="sum")
+        "1, 2, op='sum'"
+    """
+    repr_args = map(repr, args)
+    repr_kwargs = (f"{k}={v!r}" for k, v in kwargs.items())
+    return ", ".join(chain(repr_args, repr_kwargs))
