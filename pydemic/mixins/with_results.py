@@ -1,4 +1,5 @@
 from abc import ABC
+from collections import defaultdict
 from typing import TYPE_CHECKING, Any
 
 from mundi import Region
@@ -17,80 +18,93 @@ class WithResultsMixin(ABC):
     evolution of the epidemic.
     """
 
-    iter: int
     _meta: "Meta"
-    get_param: callable
+    iter: int
     disease_params: Any
     region: Region
+    get_param: callable
+    RESULT_REGION_KEYS = ("population", "age_distribution", "age_pyramid")
+    RESULT_DATES_KEYS = ("start", "end", "peak")
 
     @property
     def results(self) -> Results:
         return Results(self)
 
     def __init__(self):
-        self._results_cache = {}
+        self._results_cache = defaultdict(dict)
         self._results_dirty_check = None
 
-    def get_result_data(self, key=None):
-        """
-        Handle model.result["data.*"] queries.
-        """
+    def __getitem__(self, item):
+        raise NotImplementedError
 
-        if key is None:
-            keys = [*self._meta.variables, "cases", "attack_rate", *extra_keys(self, "data")]
-            return {k: self.get_result_data(k) for k in keys}
+    def get_result_keys_data(self):
+        """
+        Yield keys for the result["data"] dict.
+        """
+        yield from self._meta.variables
+        yield "cases"
+        yield "attack_rate"
 
+    def get_result_value_data(self, key):
+        """
+        Return value for model.result["data.<key>"] queries.
+        """
         if key == "attack_rate":
             population = self["population:initial"]
             return (population - self["susceptible:final"]) / population
-
         return self[f"{key}:final"]
 
-    def get_result_params(self, key=None):
+    def get_result_keys_params(self):
         """
-        Handle model.result["param.*"] queries.
+        Yield keys for the result["params"] dict.
         """
-        if key is None:
-            keys = [*self._meta.params.primary, *extra_keys(self, "param")]
-            return {k: self.get_result_params(k) for k in keys}
+        yield from self._meta.params.primary
 
+    def get_result_value_params(self, key):
+        """
+        Return value for model.result["params.<key>"] queries.
+        """
         return self.get_param(key)
 
-    def get_result_disease(self, key=None):
+    def get_result_keys_disease(self):
         """
-        Handle model.result["disease.*"] queries.
+        Yield keys for the result["disease"] dict.
         """
-        if key is None:
-            keys = [*self.disease_params, *extra_keys(self, "disease")]
-            return {k: self.get_result_disease(k) for k in keys}
+        yield from self.disease_params
 
+    def get_result_value_disease(self, key):
+        """
+        Return value for model.result["disease.<key>"] queries.
+        """
         return getattr(self.disease_params, key)
 
-    def get_result_region(self, key=None):
+    def get_result_keys_region(self):
+        """
+        Yield keys for the result["region"] dict.
+        """
+        if self.region is None:
+            return
+        yield from self.RESULT_REGION_KEYS
+
+    def get_result_value_region(self, key):
         """
         Handle model.result["region.*"] queries.
         """
-        keys = ("population", "age_distribution", "age_pyramid")
-        if key is None and self.region is None:
-            return None
-        elif key is None:
-            keys = (*keys, *extra_keys(self, "region"))
-            return {k: self.get_result_region(k) for k in keys}
-
-        if key in keys:
+        if key in self.RESULT_REGION_KEYS:
             return getattr(self, key)
         return KeyError(key)
 
-    def get_result_dates(self, key):
+    def get_result_keys_dates(self):
         """
-        Handle model.result["disease.*"] queries.
+        Yield keys for the result["dates"] dict.
         """
+        yield from self.RESULT_DATES_KEYS
 
-        keys = ("start", "end", "peak")
-        if key is None:
-            keys = (*keys, *extra_keys(self, "dates"))
-            return {k: self.get_result_dates(k) for k in keys}
-        elif key == "start":
+    def get_result_value_dates(self, key):
+        """
+        Return value for model.result["dates.<key>"] queries.
+        """
+        if key == "start":
             return self.to_date(0)
         elif key == "end":
             return self.date
@@ -98,16 +112,3 @@ class WithResultsMixin(ABC):
             return self["infectious:peak-date"]
         else:
             raise KeyError(key)
-
-
-def extra_keys(model, name):
-    """
-    Collect extra keys implemented as _get_result_<name>__<key> methods.
-    """
-
-    prefix = f"_get_result_{name}__"
-    n = len(prefix)
-
-    for attr in dir(model):
-        if attr.startswith(prefix):
-            yield attr[n:].replace("__", ".")
