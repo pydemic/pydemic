@@ -9,14 +9,14 @@ import sidekick as sk
 from sidekick import placeholder as _
 
 from .clinical_acessor import Clinical
-from .model_meta import ModelMeta
+from .metaclass import ModelMeta
 from .. import formulas
 from ..diseases import Disease, disease as get_disease
 from ..mixins import (
     WithParamsMixin,
     WithDataModelMixin,
     WithInfoMixin,
-    WithSummaryMixin,
+    WithResultsMixin,
     WithRegionDemography,
 )
 from ..packages import plt
@@ -34,7 +34,7 @@ if TYPE_CHECKING:
 class Model(
     WithDataModelMixin,
     WithInfoMixin,
-    WithSummaryMixin,
+    WithResultsMixin,
     WithParamsMixin,
     WithRegionDemography,
     metaclass=ModelMeta,
@@ -91,7 +91,7 @@ class Model(
         # Init other mixins
         WithParamsMixin.__init__(self, params, keywords=kwargs)
         WithInfoMixin.__init__(self)
-        WithSummaryMixin.__init__(self)
+        WithResultsMixin.__init__(self)
         WithDataModelMixin.__init__(self)
 
         if clinical:
@@ -129,7 +129,7 @@ class Model(
         cls = type(self)
         data = self.__dict__.copy()
         params = data.pop("_params")
-        results_data = data.pop("_results_data")
+        data.pop("_results_cache")
 
         new = object.__new__(cls)
         for k in list(kwargs):
@@ -137,7 +137,7 @@ class Model(
                 data[k] = kwargs.pop(k)
 
         new._params = copy(params)
-        new._results_data = {k: copy(v) for k, v in results_data}
+        new._results_cache = {}
         new.__dict__.update(copy(data))
 
         for k, v in kwargs.items():

@@ -20,13 +20,22 @@ class AbstractSIR(Model, ABC):
     DATA_ALIASES = {"S": "susceptible", "I": "infectious", "R": "recovered"}
     model_name = "SIR"
 
+    class Meta:
+        data_aliases = {
+            "S": "susceptible",
+            "I": "infectious",
+            "R": "recovered",
+            "E": "infectious",
+            "exposed": "infectious",
+        }
+
     # Basic epidemiological parameters
     R0: float = param_property("R0", default=2.0)
     infectious_period: float = param_property("infectious_period", default=1.0)
 
     # Simulation state
     susceptible: float = state_property(0)
-    exposed: float = state_property(1)  # an alias to infectious
+    exposed: float = sk.alias("infectious")  # an alias to infectious
     infectious: float = state_property(1)
     recovered: float = state_property(2)
 

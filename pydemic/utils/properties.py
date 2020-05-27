@@ -1,14 +1,21 @@
+from functools import total_ordering
+
 from ..packages import sk
 
 NOT_GIVEN = object()
 
 
+@total_ordering
 class state_property(property):
     """
     A property that exposes a state component as rw.
     """
 
-    def __init__(self, i, ro=False):
+    name: str
+    index: int
+    ro: bool
+
+    def __init__(self, i, ro=False, name=None):
         def fget(self):
             return self.state[i]
 
@@ -16,7 +23,27 @@ class state_property(property):
             self.state[i] = value
 
         args = (fget,) if ro else (fget, fset)
+        self.index = i
+        self.name = name
+        self.ro = ro
         super().__init__(*args)
+
+    def __set_name__(self, owner, name):
+        if self.name is None:
+            self.name = name
+
+    def __gt__(self, other):
+        if isinstance(other, state_property):
+            return self.index > other.index
+        return NotImplemented
+
+    def __repr__(self):
+        args = ", True" if self.ro else ""
+        args += f", name={self.name!r}" if self.name else ""
+        return f"state_property({self.index}{args})"
+
+    def __str__(self):
+        return self.name or super().__str__()
 
 
 class param_property(property):

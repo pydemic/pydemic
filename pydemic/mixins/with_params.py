@@ -30,9 +30,9 @@ class WithParamsMixin(ABC):
     _params: dict
 
     # Cache information in the params_info object as instance attributes.
-    __primary_params: frozenset = sk.lazy(_.params.primary)
-    __all_params: frozenset = sk.lazy(_.params.all)
-    __alternative_params: frozenset = sk.lazy(_.params.alternative)
+    __all_params: frozenset = sk.lazy(_._meta.params.all)
+    __primary_params: frozenset = sk.lazy(_._meta.params.primary)
+    __alternative_params: frozenset = sk.lazy(_._meta.params.alternative)
 
     def __init__(self, params=None, keywords=None):
         self._params = {}

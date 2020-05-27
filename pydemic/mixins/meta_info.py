@@ -1,9 +1,11 @@
-from typing import Tuple, TYPE_CHECKING, Type
+from typing import TYPE_CHECKING, Type, Tuple, Iterator
 
 import sidekick as sk
 
+from .params_info import ParamsInfo
+from .. import utils
+
 if TYPE_CHECKING:
-    from .params_info import ParamsInfo
     from ..models import Model
 
 
@@ -18,6 +20,8 @@ class Meta:
 
     cls: Type["Model"]
     params: "ParamsInfo"
+    variables: Tuple[str]
+    ndim: int
 
     @classmethod
     def from_arguments(cls, kind, bases, meta):
@@ -32,13 +36,13 @@ class Meta:
     def __init__(self, cls, **kwargs):
         self.cls = cls
         self.explicit_kwargs = kwargs
-        self.params = ParamsInfoSubspace(self)
-        for k, v in kwargs.items():
-            if "__" in k:
-                ns, _, tail = k.partition("__")
-                setattr(getattr(self, ns), tail, v)
-            else:
-                setattr(self, k, v)
+        self.variables = tuple(p.name for p in sorted(iter_state_variables(cls)))
+        self.ndim = len(self.variables)
+        self.params = ParamsInfo(cls)
+        self.data_aliases = data_aliases(cls, kwargs.pop("data_aliases", None))
+
+        if kwargs:
+            raise TypeError(f"invalid arguments: {set(kwargs)}")
 
     @sk.lazy
     def component_index(self):
@@ -61,64 +65,6 @@ class Meta:
         except AttributeError:
             return tuple(cls.DATA_ALIASES.values())
 
-    @sk.lazy
-    def params__primary(self) -> Tuple[str]:
-        return frozenset(k for k, v in self._params() if not v.is_derived)
-
-    @sk.lazy
-    def params__alternative(self):
-        return frozenset(k for k, v in self._params() if v.is_derived)
-
-    @sk.lazy
-    def params__all(self):
-        return self.params__primary | self.params__alternative
-
-    def _params(self):
-        cls = self.cls
-        for k in dir(cls):
-            v = getattr(cls, k, None)
-            if hasattr(v, "__get__") and getattr(v, "is_param", False):
-                yield k, v
-
-
-class SubNamespaceView:
-    """
-    View a sub-set of the target object namespace.
-    """
-
-    __slots__ = ("_obj", "_prefix")
-
-    def __init__(self, obj, prefix):
-        cls = type(self)
-        cls._obj.__set__(self, obj)
-        cls._prefix.__set__(self, prefix)
-
-    def __setattr__(self, attr, value):
-        try:
-            setattr(self._obj, self._prefix + attr, value)
-        except AttributeError:
-            raise AttributeError(attr)
-
-    def __getattr__(self, attr):
-        try:
-            return getattr(self._obj, self._prefix + attr)
-        except AttributeError:
-            raise AttributeError(attr)
-
-
-class ParamsInfoSubspace(SubNamespaceView):
-    """
-    Object that holds information about parameters.
-    """
-
-    __slots__ = ()
-
-    def __init__(self, obj):
-        super().__init__(obj, "params__")
-
-    def is_static(self, param: str, model: "Model"):
-        return True
-
 
 def meta_arguments(bases, meta_declaration):
     """
@@ -136,5 +82,38 @@ def meta_arguments(bases, meta_declaration):
 
     if meta_declaration is not None:
         ns = vars(meta_declaration)
-        kwargs.update({k: v for k, v in ns if not k.startswith("_")})
+        kwargs.update({k: v for k, v in ns.items() if not k.startswith("_")})
     return kwargs
+
+
+def iter_state_variables(cls) -> Iterator[utils.state_property]:
+    """
+    Return a list of state variables for class.
+    """
+    for attr in dir(cls):
+        value = getattr(cls, attr, None)
+        if isinstance(value, utils.state_property):
+            yield value
+
+
+def data_aliases(cls, extra=None):
+    """
+    Return the data_aliases meta attribute for the given class.
+
+    Extra is an optional dictionary with additional data alias definitions.
+    """
+    out = {}
+    for base in reversed(cls.__bases__):
+        print(base)
+        try:
+            out.update(base._meta.data_aliases)
+        except AttributeError:
+            continue
+
+    out.update(extra or ())
+
+    # Remove null aliases
+    for k, v in list(out.items()):
+        if v is None:
+            del out[k]
+    return out
