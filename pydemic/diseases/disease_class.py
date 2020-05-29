@@ -42,16 +42,16 @@ class Disease(ABC):
     _default_params = sk.lazy(lambda _: WrappedParams(_))
 
     # Constants
-    MORTALITY_TABLE_DEFAULT = not_implemented
+    MORTALITY_TABLE_DEFAULT = "default"
     MORTALITY_TABLE_ALIASES = {}
     MORTALITY_TABLE_DESCRIPTIONS = {}
-    HOSPITALIZATION_TABLE_DEFAULT = not_implemented
+    HOSPITALIZATION_TABLE_DEFAULT = "default"
     HOSPITALIZATION_TABLE_ALIASES = {}
     HOSPITALIZATION_TABLE_DESCRIPTIONS = {}
     PARAMS_BLACKLIST = frozenset({"to_json", "to_record", "to_dict", "params", "epidemic_curve"})
 
     def __init__(self, name=None, description=None, full_name=None, path=None):
-        self.name = name or self.name or type(self.__name__)
+        self.name = name or self.name or type(self).__name__
         self.full_name = full_name or self.full_name
         self.description = description or self.description or self.__doc__.strip()
         self.path = path or self.path

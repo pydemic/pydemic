@@ -4,8 +4,8 @@ from .covid19_class import Covid19
 from .disease_class import Disease
 
 covid19 = Covid19("Covid-19")
-
-DISEASE_MAP = {"covid-19": covid19}
+DISEASE_MAP = {"covid-19": covid19, "disease": Disease("empty")}
+DEFAULT = covid19
 
 
 def disease(name: Union[Disease, str]) -> Disease:
@@ -17,8 +17,7 @@ def disease(name: Union[Disease, str]) -> Disease:
         Covid19()
     """
     if name is None:
-        # TODO: allow users to configure the default disease
-        return covid19
+        return DEFAULT
     if isinstance(name, Disease):
         return name
     try:
@@ -26,3 +25,17 @@ def disease(name: Union[Disease, str]) -> Disease:
     except KeyError:
         diseases = ", ".join(map(repr, DISEASE_MAP.keys()))
         raise ValueError(f"invalid disease. Must be one of {diseases}")
+
+
+def set_default(disease):
+    """
+    Set the global default disease.
+    """
+
+    global DEFAULT
+
+    if isinstance(disease, str):
+        disease = globals()["disease"](disease)
+    if not isinstance(disease, Disease):
+        raise TypeError(f"not a disease type: {type(disease).__name__}")
+    DEFAULT = disease
