@@ -9,7 +9,7 @@ class PydemicProperty(RegionProperty):
 
     __slots__ = ()
 
-    def epidemic_curves(self, disease=None, **kwargs):
+    def epidemic_curve(self, disease=None, **kwargs):
         """
         Return epidemic curves for region.
         """
