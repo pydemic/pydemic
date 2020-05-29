@@ -39,7 +39,7 @@ ALTERNATE_FORMS = {
 }
 
 
-def formula(model=None, ignore=(), options=(), invalid="raise", positional=0):
+def formula(model=None, ignore=(), options=(), invalid="raise", positional=0, formula_name=None):
     """
     Decorator that register formula functions.
 
@@ -66,6 +66,9 @@ def formula(model=None, ignore=(), options=(), invalid="raise", positional=0):
             Strategy to use when encounter invalid parameters: 'ignore', simply
             suppress them, 'pass', pass them to the decorated function and
             'raise' (default) raises an error.
+        formula_name:
+            If given, register function under a different name than the declared
+            function name.
     """
 
     def decorator(fn):
@@ -75,6 +78,7 @@ def formula(model=None, ignore=(), options=(), invalid="raise", positional=0):
         signature = inspect.signature(fn)
         arguments = set(list(signature.parameters)[positional:]).difference(options)
         alternatives = {x for x, (k, _) in ALTERNATE_FORMS.items() if k in arguments}
+        fn_name = formula_name or fn.__name__
 
         # Remove **starred_kwargs from arguments
         for arg in signature.parameters.values():
@@ -181,7 +185,7 @@ def formula(model=None, ignore=(), options=(), invalid="raise", positional=0):
         # Register formula
         model_lst = (model,) if isinstance(model, str) else tuple(model or ())
         for m in model_lst:
-            FUNCTIONS[fn.__name__][m] = decorated
+            FUNCTIONS[fn_name][m] = decorated
         decorated.models = frozenset(model_lst)
 
         return decorated
@@ -352,3 +356,10 @@ def initial_state(model, cases, params=None, **kwargs) -> np.ndarray:
        An array with the estimated initial state.
     """
     return FUNCTIONS_STATE_FROM_CASES[model](params, cases=cases, **kwargs)
+
+
+def get_function(model, name):
+    """
+    Return registered function.
+    """
+    return FUNCTIONS[name][model]
