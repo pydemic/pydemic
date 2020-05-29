@@ -2,7 +2,18 @@
 import sidekick as _sk
 
 from .datetime import today, now
-from .formatting import fmt, pc, p10k, p100k, pm, indent, slugify, safe_int, format_args
+from .formatting import (
+    fmt,
+    pc,
+    p10k,
+    p100k,
+    pm,
+    indent,
+    slugify,
+    safe_int,
+    format_args,
+    file_type_display_name,
+)
 from .functions import interpolant, lru_safe_cache, coalesce, maybe_run
 from .json import to_json
 from .properties import (

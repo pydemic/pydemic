@@ -108,7 +108,7 @@ class Params(metaclass=ParamMeta):
         kwargs = {**self.__dict__, **kwargs}
         return cls(self.name, **kwargs)
 
-    def value(self, key, default=NOT_GIVEN) -> Number:
+    def value(self, key, default: Number = NOT_GIVEN) -> Number:
         """
         Return the value of the given parameter.
         """

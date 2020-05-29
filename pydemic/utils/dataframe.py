@@ -1,9 +1,12 @@
 from typing import Union, Sequence
 
+import numpy as np
 import pandas as pd
 
+Data = Union[Sequence, pd.Series, np.ndarray]
 
-def trim_zeros(data: Union[pd.Series, Sequence]) -> Sequence:
+
+def trim_zeros(data: Union[pd.Series, Sequence]) -> Data:
     """
     Remove null values from the start and end of series or array.
     """

@@ -1,7 +1,10 @@
 import re
+from functools import singledispatch, lru_cache
 from gettext import gettext as _
 from itertools import chain
 from math import log10
+from numbers import Number
+from types import MappingProxyType
 
 import numpy as np
 
@@ -25,7 +28,33 @@ HUMANIZED_SUFFIXES = (
 )
 
 
-def fmt(n, empty="-"):
+@singledispatch
+def fmt(x, empty="-", role=None):
+    """
+    Format element to a humanized form.
+    """
+    if x is None:
+        return empty
+    return str(x)
+
+
+@fmt.register(Number)
+def __(x, empty="-", role=None):
+    if role is None:
+        return format_number(x, empty)
+    elif role in ("pc", "%"):
+        return pc(x, empty)
+    elif role == "pm":
+        return pm(x, empty)
+    elif role == "p10k":
+        return p10k(x, empty)
+    elif role == "p100k":
+        return p100k(x, empty)
+    else:
+        raise ValueError(f"invalid role: {role!r}")
+
+
+def format_number(n, empty="-"):
     """
     Heuristically choose best format option for number.
     """
@@ -74,34 +103,40 @@ def pc(n, empty="-"):
         return empty
     if n == 0:
         return "0.0%"
-    return fmt(100 * n) + "%"
+    return format_number(100 * n) + "%"
 
 
-def pm(n):
+def pm(n, empty="-"):
     """
     Write number as parts per thousand.
     """
+    if n is None:
+        return empty
     if n == 0:
         return "0.0‰"
-    return fmt(1000 * n) + "‰"
+    return format_number(1000 * n) + "‰"
 
 
-def p10k(n):
+def p10k(n, empty="-"):
     """
     Write number as parts per ten thousand.
     """
+    if n is None:
+        return empty
     if n == 0:
         return "0.0‱"
-    return fmt(10000 * n) + "‱"
+    return format_number(10000 * n) + "‱"
 
 
-def p100k(n):
+def p100k(n, empty="-"):
     """
     Write number as parts per 100 thousand.
     """
+    if n is None:
+        return empty
     if n == 0:
         return "0.0"
-    return fmt(100000 * n) + "/100k"
+    return format_number(100000 * n) + "/100k"
 
 
 def indent(st, indent=4):
@@ -156,3 +191,30 @@ def format_args(*args, **kwargs):
     repr_args = map(repr, args)
     repr_kwargs = (f"{k}={v!r}" for k, v in kwargs.items())
     return ", ".join(chain(repr_args, repr_kwargs))
+
+
+#
+# Display name functions
+#
+def file_type_display_name(ext, mapping=None):
+    """
+    Humanized representation of a file name extension.
+    """
+    if mapping is None:
+        mapping = _file_type_display_name_mapping()
+
+    return str(mapping.get(ext, ext.upper()))
+
+
+@lru_cache(1)
+def _file_type_display_name_mapping():
+    return MappingProxyType(
+        {
+            "csv": _("CSV"),
+            "csv.gz": _("zipped CSV"),
+            "pkl": _("Python pickle"),
+            "pkl.gz": _("Python pickle"),
+            "xls": _("Excel sheet"),
+            "xlsx": _("Excel sheet"),
+        }
+    )
