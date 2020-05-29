@@ -68,7 +68,6 @@ def average_growth(results, tol=1e-9) -> ValueStd:
     if isinstance(results, pd.DataFrame):
         results = results.values
 
-    growth = 0.0
     weights = 0.0
     cum_var = 0.0
     N = 0
@@ -77,11 +76,10 @@ def average_growth(results, tol=1e-9) -> ValueStd:
         var = std * std + tol
         weight = 1 / var
         weights += weight
-        growth += weight * value
-        cum_var += var
+        cum_var += weight * value
         N += 1
 
-    return ValueStd(growth / weights, np.sqrt(cum_var / N))
+    return ValueStd(cum_var / weights, np.sqrt(cum_var / N))
 
 
 def exponential_extrapolation(ys: Sequence, n: int, append=False) -> np.ndarray:
