@@ -34,8 +34,8 @@ class CrudeFR(ClinicalObserverModel):
     prob_severe: float = param_property(default=0.0)
     prob_critical: float = param_property(default=0.0)
 
-    hospitalization_period: float = param_property(default=0.0)
-    icu_period: float = param_property(default=0.0)
+    severe_period: float = param_property(default=0.0)
+    critical_period: float = param_property(default=0.0)
 
     # Aliases
     Qsv: float = param_alias("prob_severe")
@@ -57,7 +57,7 @@ class CrudeFR(ClinicalObserverModel):
     def get_data_severe(self, idx):
         data = self["severe_cases", idx]
         K = max(self.K, 0)
-        return delayed_with_discharge(data, 0, self.hospitalization_period, K, positive=True)
+        return delayed_with_discharge(data, 0, self.severe_period, K, positive=True)
 
     def get_data_severe_cases(self, idx):
         return self["cases", idx] * self.Qsv

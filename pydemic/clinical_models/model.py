@@ -204,7 +204,7 @@ class ClinicalModel(Model, ABC):
     #
     # Other functions
     #
-    def plot(self, components=None, *, show=False, **kwargs):
+    def plot(self, components=None, *, ax=None, logy=False, show=False, **kwargs):
         if components is None:
             self.infection_model.plot(**kwargs)
             components = self._meta.plot_columns

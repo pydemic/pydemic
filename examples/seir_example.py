@@ -26,10 +26,10 @@ plt.subplot(221)
 m.plot(log=True)
 
 plt.subplot(222)
-cm.plot(["death_rate", "severe"], log=True)
+cm.plot(["death_rate", "severe"], logy=True)
 
 plt.subplot(223)
-cm.plot(["infectious", "cases", "infected", "severe_cases", "critical_cases"], log=True)
+cm.plot(["infectious", "cases", "infected", "severe_cases", "critical_cases"], logy=True)
 
 plt.subplot(224)
 df = cm[["empirical_CFR", "empirical_IFR"]] * 100

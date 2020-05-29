@@ -1,14 +1,11 @@
-from typing import TYPE_CHECKING
+from typing import Union, TYPE_CHECKING
 
 import sidekick as sk
 
 if TYPE_CHECKING:
-    from ..clinical_models import (
-        CrudeFR,
-        HospitalizationWithDelay,
-        HospitalizationWithOverflow,
-        ClinicalModel,
-    )
+    from ..clinical_models import CrudeFR, HospitalizationWithDelay, HospitalizationWithOverflow
+
+    ClinicalModel = Union["CrudeFR", "HospitalizationWithDelay", "HospitalizationWithOverflow"]
 
 
 class Clinical:
@@ -33,38 +30,49 @@ class Clinical:
         self._model = model
 
     def __call__(self, *args, **kwargs):
-        cls = self._model.clinical_model or self._models.CrudeFR
         params = {**self._model.clinical_params, **kwargs}
-        return self.clinical_model(cls, *args, **params)
+        if args:
+            (cls,) = args
+            if isinstance(cls, str):
+                return self.clinical_model(cls, **params)
+        else:
+            cls = self._model.clinical_model or self._models.CrudeFR
+        return self.clinical_model(cls, **params)
 
     def __getitem__(self, item):
         return self._default[item]
 
-    def clinical_model(self, cls, *args, **kwargs) -> "ClinicalModel":
+    def clinical_model(self, cls, **kwargs) -> "ClinicalModel":
         """
         Create a clinical model from model infectious model instance.
         """
-        return cls(self._model, *args, **kwargs)
+        if isinstance(cls, str):
+            method = getattr(self, cls.lower() + "_model", None)
+            if method is None:
+                raise ValueError(f"invalid model: {cls!r}")
+            return method(**kwargs)
 
-    def crude_model(self, *args, **kwargs) -> "CrudeFR":
+        return cls(self._model, **kwargs)
+
+    def crude_model(self, **kwargs) -> "CrudeFR":
         """
         Create a clinical model from model infectious model instance.
         """
         cls = self._models.CrudeFR
-        return self.clinical_model(cls, *args, **kwargs)
+        return self.clinical_model(cls, **kwargs)
 
-    def delay_model(self, *args, **kwargs) -> "HospitalizationWithDelay":
+    def delay_model(self, **kwargs) -> "HospitalizationWithDelay":
         """
         A simple clinical model in which hospitalization occurs with some
         fixed delay.
         """
         cls = self._models.HospitalizationWithDelay
-        return self.clinical_model(cls, *args, **kwargs)
+        return self.clinical_model(cls, **kwargs)
 
-    def overflow_model(self, *args, **kwargs) -> "HospitalizationWithOverflow":
+    def overflow_model(self, **kwargs) -> "HospitalizationWithOverflow":
         """
         A clinical model that considers the overflow of a healthcare system
         in order to compute the total death toll.
         """
         cls = self._models.HospitalizationWithOverflow
-        return self.clinical_model(cls, *args, **kwargs)
+        return self.clinical_model(cls, **kwargs)

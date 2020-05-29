@@ -27,6 +27,6 @@ if __name__ == "__main__":
     def cli(duration, r0, linear):
         m = SIR(R0=r0)
         m.run(duration)
-        m.plot(show=True, log=not linear)
+        m.plot(logy=not linear, show=True)
 
     cli()

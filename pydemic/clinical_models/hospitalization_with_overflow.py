@@ -68,7 +68,7 @@ class HospitalizationWithOverflow(HospitalizationWithDelay):
         times = sliced(self.times, idx)
         scale = 1 - self.ICUFR
         area = cumtrapz(self["critical_overflow", idx] * scale, times, initial=0)
-        return pd.Series(area / self.icu_period, index=times)
+        return pd.Series(area / self.critical_period, index=times)
 
     def get_data_hospital_overflow_deaths(self, idx):
         """
@@ -76,7 +76,7 @@ class HospitalizationWithOverflow(HospitalizationWithDelay):
         """
         times = sliced(self.times, idx)
         area = cumtrapz(self["severe_overflow", idx], times, initial=0)
-        cases = area / self.hospitalization_period
+        cases = area / self.severe_period
         ratio = (self.Qcr / self.Qsv) * self.hospitalization_overflow_bias
         deaths = cases * min(ratio, 1)
         return pd.Series(deaths, index=times)
@@ -111,7 +111,7 @@ class HospitalizationWithOverflow(HospitalizationWithDelay):
     def get_data_hospitalized_cases(self, idx):
         times = sliced(self.times, idx)
         area = cumtrapz(self["hospitalized", idx], times, initial=0)
-        return pd.Series(area / self.hospitalization_period, index=times)
+        return pd.Series(area / self.severe_period, index=times)
 
     def get_data_hospitalized(self, idx):
         demand = self["severe", idx]
@@ -130,7 +130,7 @@ class HospitalizationWithOverflow(HospitalizationWithDelay):
     def get_data_icu_cases(self, idx):
         times = sliced(self.times, idx)
         area = cumtrapz(self["icu", idx], times, initial=0)
-        return pd.Series(area / self.icu_period, index=times)
+        return pd.Series(area / self.critical_period, index=times)
 
     def get_data_icu(self, idx):
         demand = self["hospitalized", idx]
@@ -144,7 +144,7 @@ class HospitalizationWithOverflow(HospitalizationWithDelay):
     #
     # Results methods
     #
-    def get_overflow_date(self, col, value=0.0):
+    def overflow_date(self, col, value=0.0):
         """
         Get date in which column assumes a value greater than value.
         """
@@ -153,8 +153,8 @@ class HospitalizationWithOverflow(HospitalizationWithDelay):
                 return date
         return None
 
-    def get_results_dates__icu_overflow(self):
-        return self.get_overflow_date("critical", self.icu_surge_capacity)
+    def get_results_value_dates__icu_overflow(self):
+        return self.overflow_date("critical", self.icu_surge_capacity)
 
-    def get_results_dates__hospital_overflow(self):
-        return self.get_overflow_date("severe", self.hospital_surge_capacity)
+    def get_results_value_dates__hospital_overflow(self):
+        return self.overflow_date("severe", self.hospital_surge_capacity)

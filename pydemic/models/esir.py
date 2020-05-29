@@ -56,6 +56,6 @@ if __name__ == "__main__":
             steps -= 1
             duration -= step
 
-        m.plot(show=True, log=log)
+        m.plot(logy=log, show=True)
 
     cli()

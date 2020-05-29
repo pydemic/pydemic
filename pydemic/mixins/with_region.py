@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 import pandas as pd
 
@@ -7,6 +7,9 @@ from ..utils import extract_keys
 
 INIT_KEYWORDS = frozenset(["region", "population", "age_distribution", "age_pyramid"])
 
+if TYPE_CHECKING:
+    from ..region import RegionT  # noqa: F401
+
 
 class WithRegionDemography:
     """
@@ -14,7 +17,7 @@ class WithRegionDemography:
     demographic parameters.
     """
 
-    region: Optional[mundi.Region]
+    region: Optional["RegionT"]
     population: float
     age_distribution: Optional[pd.Series]
     age_pyramid: Optional[pd.DataFrame]

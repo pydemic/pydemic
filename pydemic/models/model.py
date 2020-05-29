@@ -6,12 +6,13 @@ from typing import Sequence, Callable, Mapping, TYPE_CHECKING
 import numpy as np
 import pandas as pd
 import sidekick as sk
-from sidekick import placeholder as _
 
 from .clinical_acessor import Clinical
 from .metaclass import ModelMeta
+from .. import fitting as fit
 from .. import formulas
 from ..diseases import Disease, disease as get_disease
+from ..logging import log
 from ..mixins import (
     WithParamsMixin,
     WithDataModelMixin,
@@ -20,7 +21,7 @@ from ..mixins import (
     WithRegionDemography,
 )
 from ..packages import plt
-from ..utils import today, not_implemented, extract_keys, maybe_run
+from ..utils import today, not_implemented, extract_keys
 
 NOW = datetime.datetime.now()
 TODAY = datetime.date(NOW.year, NOW.month, NOW.day)
@@ -29,6 +30,7 @@ pplt = sk.import_later("..plot", package=__package__)
 
 if TYPE_CHECKING:
     from ..model_group import ModelGroup
+    from pydemic_ui.model import UIProperty
 
 
 class Model(
@@ -59,13 +61,26 @@ class Model(
 
     # Common epidemiological parameters
     K = sk.property(not_implemented)
-    duplication_time = sk.property(np.log(2) / _.K)
+    duplication_time = property(lambda self: np.log(2) / self.K)
 
     # Special accessors
     clinical: Clinical = property(lambda self: Clinical(self))
     clinical_model: type = None
     clinical_params: Mapping = MappingProxyType({})
     disease: Disease = None
+
+    @property
+    def ui(self) -> "UIProperty":
+        try:
+            from pydemic_ui.model import UIProperty
+        except ImportError as ex:
+            log.warn(f"Could not import pydemic_ui.model: {ex}")
+            msg = (
+                "must have pydemic-ui installed to access the model.ui attribute.\n"
+                "Please 'pip install pydemic-ui' before proceeding'"
+            )
+            raise RuntimeError(msg)
+        return UIProperty(self)
 
     @classmethod
     def create(cls, params=None):
@@ -78,15 +93,12 @@ class Model(
     ):
         self.name = name or f"{type(self).__name__} model"
         self.date = pd.to_datetime(date or today())
-        self.disease = maybe_run(get_disease, disease)
+        self.disease = get_disease(disease)
         self._initialized = False
 
         # Fix demography
         demography_opts = WithRegionDemography._init_from_dict(self, kwargs)
-        if disease is None:
-            self.disease_params = sk.record({})
-        else:
-            self.disease_params = self.disease.params(**demography_opts)
+        self.disease_params = self.disease.params(**demography_opts)
 
         # Init other mixins
         WithParamsMixin.__init__(self, params, keywords=kwargs)
@@ -184,7 +196,9 @@ class Model(
                 m = len(xs)
                 if m != n:
                     raise ValueError(
-                        f"sizes do not match: " f"{k} should be a sequence of {n} items, got {m}"
+                        f"sizes do not match: "
+                        f"{k} should be a sequence of {n} "
+                        f"items, got {m}"
                     )
                 for opt, x in zip(options, xs):
                     opt.setdefault(k, x)
@@ -308,7 +322,68 @@ class Model(
         self.time = len(data) - 1
         self.date = data.index[-1]
         self.state[:] = data.iloc[-1]
+        self.info["observed.dates"] = data.index[[0, -1]]
         self._initialized = True
+
+    def set_cases(self, cases=None, notification_rate=None, adjust_R0=False, save_cases=False):
+        """
+        Initialize model from a dataframe with the deaths and cases curve.
+
+        This curve is usually the output of disease.epidemic_curve(region), and is
+        automatically retrieved if not passed explicitly and the region of the model
+        is set.
+
+        Args:
+            cases:
+                Dataframe with cumulative ["cases", "deaths"] columns. If not given,
+                or None, fetches from disease.epidemic_curves(info)
+            notification_rate:
+                If given, controls the fraction of cases that where observed.
+            adjust_R0:
+                If true, adjust R0 from the observed cases.
+            save_cases:
+                If true, save the cases curves into the model.info["observed.cases"] key.
+        """
+
+        if cases is None:
+            if self.region is None or self.disease is None:
+                msg = 'must provide both "region" and "disease" or an explicit cases ' "curve."
+                raise ValueError(msg)
+            cases = self.region.pydemic.epidemic_curve(self.disease)
+
+        model = self._meta.model_name
+        if adjust_R0:
+            method = "OLS" if adjust_R0 is True else adjust_R0
+            Re, _ = value = fit.adjust_R0_from_cases(model, cases, self, method=method)
+            assert np.isfinite(Re), f"invalid value for R0: {value}"
+
+            self.R0 = Re
+            self.info["stats.R0"] = value
+
+        # Select notification rate and save it in the info dictionary for reference
+        if notification_rate in ("deaths", "CFR", None):
+            CFR = self.disease_params.CFR
+            last = cases.iloc[-1]
+            empirical_CFR = last["deaths"] / last["cases"]
+            notification_rate = CFR / empirical_CFR
+        self.info["cases.notification_rate"] = notification_rate
+
+        # Save simulation state from data
+        curve = cases["cases"] / notification_rate
+        data = fit.epidemic_curve(model, curve, self)
+        self.set_data(data)
+        self.initial_cases = curve.iloc[0]
+
+        if adjust_R0:
+            self.R0 /= self["susceptible:final"] / self.population
+
+        # Optionally save cases curves into the info dictionary
+        if save_cases:
+            key = "observed.cases" if save_cases is True else save_cases
+            df = cases.copy()
+            df["cases"] = curve
+            df["cases_raw"] = cases["cases"]
+            self.info[key] = df
 
     def initial_state(self, cases=None, **kwargs):
         """
@@ -437,7 +512,7 @@ class Model(
         components=None,
         *,
         ax=None,
-        log=False,
+        logy=False,
         show=False,
         dates=False,
         legend=True,
@@ -447,7 +522,7 @@ class Model(
         Plot the result of simulation.
         """
         ax = ax or plt.gca()
-        kwargs = {"logy": log, "ax": ax}
+        kwargs = {"logy": logy, "ax": ax, "grid": grid, "legend": legend}
 
         def get_column(col):
             if dates:
@@ -458,11 +533,7 @@ class Model(
         components = self._meta.variables if components is None else components
         for col in components:
             data = get_column(col)
-            data.plot(label=col.title().replace("-", " ").replace("_", " "), **kwargs)
-        if legend:
-            ax.legend()
-        if grid:
-            ax.grid()
+            data.plot(**kwargs)
         if show:
             plt.show()
 

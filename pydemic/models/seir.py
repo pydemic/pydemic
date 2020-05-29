@@ -37,6 +37,6 @@ if __name__ == "__main__":
         m = SEIR()
         m.R0 = r0
         m.run(duration)
-        m.plot(show=True, log=log)
+        m.plot(logy=log, show=True)
 
     cli()
