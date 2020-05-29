@@ -116,7 +116,7 @@ def weekday_rates(
         X = np.arange(-0.5, 7.5)
         trend = daily_growth ** X
         trend /= trend.sum()
-        ax.plot(X, trend, trend_style)
+        ax.plot(X)
 
     elif trend == "cte" or trend is True:
         helpers.mark_x(1 / 7, trend_style)

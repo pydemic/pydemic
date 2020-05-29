@@ -20,8 +20,8 @@ def color(i=1, ax=None):
     This function is useful to repeat color of past plots.
 
     Examples:
-        >>> plt.plot(X, Y, 'o', label='data')
-        >>> plt.plot(V, W, '--', label='fit', color=color(1))
+        >>> plt.plot(Y)
+        >>> plt.plot(W)
     """
     ax = ax or plt.gca()
     try:
@@ -87,7 +87,7 @@ def tight(which="both", ax=None):
     Remove margins in either 'x', 'y' or 'both' directions.
 
     Examples:
-        >>> plt.plot(X, Y)
+        >>> plt.plot(Y)
         >>> tight('x')
     """
     if which == "x":
