@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+from pydemic.types import ValueStd
 from . import helpers
 from .. import fitting as fit
 from ..diseases import disease as get_disease
@@ -17,6 +18,7 @@ def cases_and_deaths(
     smooth: bool = True,
     cases: str = "cases",
     deaths: str = "deaths",
+    tight_layout=False,
     **kwargs,
 ) -> plt.Axes:
     """
@@ -59,6 +61,12 @@ def cases_and_deaths(
     kwargs.setdefault("alpha", 0.5)
     new_cases = data.diff().fillna(0)
     new_cases = new_cases.rename(col_names, axis=1)
+
+    if "ylim" not in kwargs:
+        deaths = new_cases.iloc[:, 1]
+        exp = np.log10(deaths[deaths > 0]).mean()
+        exp = min(10, int(exp / 2))
+        kwargs["ylim"] = (10 ** exp, None)
     ax: plt.Axes = new_cases.plot.bar(width=1.0, ax=ax, **kwargs)
 
     # Fix xticks
@@ -69,6 +77,9 @@ def cases_and_deaths(
     ax.set_xticklabels(labels[::periods])
     ax.tick_params("x", rotation=0)
     ax.set_ylim(1, None)
+    if tight_layout:
+        fig = ax.get_figure()
+        fig.tight_layout()
     return ax
 
 
@@ -110,7 +121,7 @@ def weekday_rates(
 
     if trend == "exp":
         by_week = accumulate_weekly(data)
-        growth, growth_std = fit.average_growth(fit.growth_factors(by_week))
+        growth, growth_std = ValueStd.mean(fit.growth_factors(by_week))
         daily_growth = growth ** (1 / 7)
 
         X = np.arange(-0.5, 7.5)

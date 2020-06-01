@@ -12,15 +12,6 @@ class PropertyMeta(ABCMeta):
     Makes class behaves like a descriptor.
     """
 
-    def as_property(cls):
-        """
-        Explicitly asks for a property interface in class declaration.
-
-        >>> class Foo:
-        ...     prop: Property = Property.as_property()
-        """
-        return property(cls)
-
     def __get__(cls, instance, kind=None):
         if instance is None:
             return cls
@@ -29,6 +20,15 @@ class PropertyMeta(ABCMeta):
 
     def __set_name__(cls, owner, name):
         cls.__dict__.setdefault("name", name)
+
+    def as_property(cls):
+        """
+        Explicitly asks for a property interface in class declaration.
+
+        >>> class Foo:
+        ...     prop: Property = Property.as_property()
+        """
+        return property(cls)
 
     def patch(cls, klass: type = None, verbose=True):
         """
@@ -112,10 +112,9 @@ class BaseProperty(ABC, metaclass=PropertyMeta):
 
     def __eq__(self, other):
         if type(self) is type(other):
-            return (
-                getattr(self, "name", None) == getattr(other, "name", None)
-                and self._object == other._object
-            )
+            other: BaseProperty
+            same_name = getattr(self, "name", None) == getattr(other, "name", None)
+            return same_name and self._object == other._object
         return NotImplemented
 
 

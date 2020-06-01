@@ -1,6 +1,3 @@
-import sidekick as sk
-from sidekick import placeholder as _
-
 from ..utils import format_args
 
 
@@ -8,17 +5,6 @@ class WrappedParams:
     """
     A wrapper object that exposes a disease as a param namespace.
     """
-
-    gamma = sk.property(1 / _.infectious_period)
-    sigma = sk.property(1 / _.incubation_period)
-
-    Qs = sk.alias("prob_symptoms")
-    Qsv = sk.alias("prob_severe")
-    Qcr = sk.alias("prob_critical")
-    CFR = sk.alias("case_fatality_ratio")
-    IFR = sk.alias("infection_fatality_ratio")
-    HFR = sk.alias("hospital_fatality_ratio")
-    ICUFR = sk.alias("icu_fatality_ratio")
 
     __slots__ = ("_wrapped", "_args", "_kwargs", "_cache", "_keys", "_blacklist")
 

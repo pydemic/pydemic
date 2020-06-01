@@ -2,13 +2,15 @@ from typing import Union
 
 from .covid19_class import Covid19
 from .disease_class import Disease
+from .disease_params import DiseaseParams
+from .utils import estimate_real_cases
 
 covid19 = Covid19("Covid-19")
 DISEASE_MAP = {"covid-19": covid19, "disease": Disease("empty")}
 DEFAULT = covid19
 
 
-def disease(name: Union[Disease, str]) -> Disease:
+def disease(name: Union[Disease, str] = None) -> Disease:
     """
     Retrieve disease by name.
 
@@ -24,7 +26,8 @@ def disease(name: Union[Disease, str]) -> Disease:
         return DISEASE_MAP[name.lower()]
     except KeyError:
         diseases = ", ".join(map(repr, DISEASE_MAP.keys()))
-        raise ValueError(f"invalid disease. Must be one of {diseases}")
+        msg = f"invalid disease. Must be one of {diseases}, got {name!r}"
+        raise ValueError(msg)
 
 
 def set_default(disease):

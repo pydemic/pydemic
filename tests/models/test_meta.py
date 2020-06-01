@@ -4,11 +4,11 @@ from pydemic.models.abstract_sir import AbstractSIR
 
 class TestMetaClass:
     def test_meta_class_for_derived_classes(self):
-        assert AbstractSIR._meta.model_name == "SIR"
-        assert SIR._meta.model_name == "SIR"
+        assert AbstractSIR.meta.model_name == "SIR"
+        assert SIR.meta.model_name == "SIR"
 
     def test_meta_class_introspection(self):
-        meta = SIR._meta
+        meta = SIR.meta
 
         # State variables
         assert meta.variables == ("susceptible", "infectious", "recovered")

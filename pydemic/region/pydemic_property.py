@@ -1,5 +1,7 @@
+import pandas as pd
+
 from .base import RegionProperty
-from ..diseases import disease as get_disease
+from ..diseases import disease as get_disease, DiseaseParams
 
 
 class PydemicProperty(RegionProperty):
@@ -9,14 +11,17 @@ class PydemicProperty(RegionProperty):
 
     __slots__ = ()
 
-    def epidemic_curve(self, disease=None, **kwargs):
+    def epidemic_curve(self, disease=None, **kwargs) -> pd.DataFrame:
         """
         Return epidemic curves for region.
+
+        See Also:
+            :method:`pydemic.diseases.Disease.epidemic_curve`
         """
         disease = get_disease(disease)
         return disease.epidemic_curve(self.region, **kwargs)
 
-    def disease_params(self, disease=None, **kwargs):
+    def disease_params(self, disease=None, **kwargs) -> DiseaseParams:
         """
         Return an object with all disease params associated with region.
         """

@@ -1,6 +1,10 @@
 # flake8: noqa
 from mundi import Region
+
+# noinspection PyUnresolvedReferences
 from mundi_demography import age_distribution, age_pyramid, population
+
+# noinspection PyUnresolvedReferences
 from mundi_healthcare import (
     hospital_capacity,
     hospital_capacity_public,

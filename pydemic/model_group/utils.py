@@ -32,7 +32,33 @@ def map_models(fn: callable, models: Iterable["Model"], key=operator.attrgetter(
     if types == {pd.Series}:
         return pd.concat(data, axis=1).set_axis(names, axis=1)
 
-    if types == {pd.DataFrame}:
+    elif types == {pd.DataFrame}:
+        cols = ((name, col) for df, name in zip(data, names) for col in df.columns)
+        cols = pd.MultiIndex.from_tuples(cols)
+        return pd.concat(data, axis=1).set_axis(cols, axis=1)
+
+    # Otherwise, we assume scalar values and create a simple series object
+    return pd.Series(data, index=names)
+
+
+def prepare_data(models: dict):
+    """
+    Last step in processing the results of a ModelGroup() getitem.
+
+    Args:
+        models:
+            A mapping from keys to data.
+    """
+
+    data = list(models.values())
+    types = set(map(type, data))
+    names = list(models.keys())
+
+    # A sequence of columns should become a dataframe
+    if types == {pd.Series}:
+        return pd.concat(data, axis=1).set_axis(names, axis=1)
+
+    elif types == {pd.DataFrame}:
         cols = ((name, col) for df, name in zip(data, names) for col in df.columns)
         cols = pd.MultiIndex.from_tuples(cols)
         return pd.concat(data, axis=1).set_axis(cols, axis=1)

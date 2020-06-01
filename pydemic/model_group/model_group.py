@@ -1,5 +1,6 @@
 import operator
 from collections import Sequence
+from types import MappingProxyType
 from typing import Iterable, Union, Type
 
 import pandas as pd
@@ -9,7 +10,7 @@ from mundi import Region
 from pydemic.utils import extract_keys
 from .model_list import ModelList
 from .properties import ModelGroupClinical, ModelGroupInfo, ModelGroupResults
-from .utils import map_models
+from .utils import map_models, prepare_data
 from ..models import Model
 
 
@@ -38,7 +39,11 @@ class ModelGroup(Iterable):
 
     @classmethod
     def from_children(
-        cls, region: Union[Region, str], model_cls: Type[Model], **kwargs
+        cls,
+        region: Union[Region, str],
+        model_cls: Type[Model],
+        options=MappingProxyType({}),
+        **kwargs,
     ) -> "ModelGroup":
         """
         Create a group from children of the given Region.
@@ -46,11 +51,16 @@ class ModelGroup(Iterable):
         region: Region = mundi.region(region)
         children = region.children(**extract_keys(("deep", "type", "subtype", "which"), kwargs))
 
-        name_template = kwargs.pop("name", "{region.name}")
+        name = kwargs.pop("name", "{region.name}")
         group = []
+        if options:
+            options = {mundi.region(k): v for k, v in options.items()}
+
         for child in children:
-            name = name_template.format(region=child, **kwargs)
-            group.append(model_cls(region=child, name=name, **kwargs))
+            opts = options.get(child, {})
+            if isinstance(name, str):
+                opts["name"] = name.format(region=child, **kwargs, **opts)
+            group.append(model_cls(region=child, **kwargs, **opts))
 
         return ModelGroup(group)
 
@@ -72,7 +82,14 @@ class ModelGroup(Iterable):
             return self._data[item]
         elif isinstance(item, slice):
             return ModelGroup(self._data[item])
-        return map_models(operator.itemgetter(item), self._data)
+        return prepare_data({m.name: m[item] for m in self._data})
+
+    def __getstate__(self):
+        return self._data
+
+    def __setstate__(self, data):
+        self._data = data
+        self.models = ModelList(self, self._data)
 
     #
     # Model group API

@@ -1,3 +1,6 @@
+from typing import Sequence
+
+
 def rpartition(seq, n):
     """
     Partition sequence in groups of n starting from the end of sequence.
@@ -77,4 +80,29 @@ def sliced(seq, idx):
     if idx is None:
         return seq
     else:
-        return seq[idx]
+        try:
+            return seq[idx]
+        except KeyError:
+            raise IndexError(f"invalid index: {idx}")
+
+
+def is_seq(obj) -> bool:
+    """
+    Return true if object is a non-string sequence.
+
+    See Also:
+        as_seq
+    """
+    return not isinstance(obj, str) and isinstance(obj, Sequence)
+
+
+def as_seq(obj) -> Sequence:
+    """
+    Force object to be a sequence.
+
+    Non-sequence arguments and strings are converted into singleton lists.
+
+    See Also:
+        is_seq
+    """
+    return obj if is_seq(obj) else (obj,)

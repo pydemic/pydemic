@@ -153,3 +153,35 @@ def set_age_distribution_default(dic, value=None, drop=False):
     if not drop:
         dic["age_distribution"] = ages
     return ages
+
+
+def estimate_real_cases(curves: pd.DataFrame, params=None, method="CFR") -> pd.DataFrame:
+    """
+    Estimate the real number of cases from the cases and deaths curves.
+
+    Returns:
+        A new dataframe with the corrected "cases" and "deaths" columns.
+    """
+
+    if params is None:
+        from . import disease
+
+        params = disease().params()
+
+    data = curves[["cases", "deaths"]]
+
+    if method == "CFR":
+        daily = data.diff().dropna()
+        cases, deaths = daily[(daily != 0).all(axis=1)].values.T
+        weights = np.log(deaths)
+        empirical_CFR = (weights * deaths / cases).sum() / weights.sum()
+
+        try:
+            CFR = params.CFR
+        except AttributeError:
+            CFR = params.disease_params.CFR
+
+        data["cases"] *= max(empirical_CFR, CFR) / CFR
+        return data
+    else:
+        raise ValueError(f"Invalid estimate method: {method!r}")

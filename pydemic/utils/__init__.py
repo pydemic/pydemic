@@ -23,7 +23,15 @@ from .properties import (
     param_alias,
     inverse_transform,
 )
-from .sequences import rpartition, flatten_dict, unflatten_dict, extract_keys, sliced
+from .sequences import (
+    rpartition,
+    flatten_dict,
+    unflatten_dict,
+    extract_keys,
+    sliced,
+    as_seq,
+    is_seq,
+)
 from .dataframe import trim_zeros
 from .timeseries import accumulate_weekly, day_of_week, weekday_name, trim_weeks
 

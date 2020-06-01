@@ -7,6 +7,7 @@ Epidemiological calculator tuned specifically for COVID-19.
 __version__ = "0.1.5"
 __author__ = "Fábio Mendes"
 
+# noinspection PyUnresolvedReferences
 from . import models
 from . import region
 from . import formulas

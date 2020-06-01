@@ -5,8 +5,7 @@ from numbers import Real
 
 import numpy as np
 
-from pydemic.params import ParamLike
-from ..params import get_param
+from ..params import get_param, ParamLike
 
 # Function registry
 FUNCTIONS_R0_FROM_K = {}
@@ -99,7 +98,7 @@ def formula(model=None, ignore=(), options=(), invalid="raise", positional=0, fo
 
         @wraps(fn)
         def decorated(*args_, **kwargs):
-            params: ParamLike
+            params: ParamLike = None
 
             options = {}
             args = args_[:positional]
@@ -156,10 +155,10 @@ def formula(model=None, ignore=(), options=(), invalid="raise", positional=0, fo
 
             # Try alternate forms if not all keyword arguments were completed.
             if len(kwargs) < n_args:
-                for arg in alternatives:
-                    k, transform = ALTERNATE_FORMS[arg]
+                for argname in alternatives:
+                    k, transform = ALTERNATE_FORMS[argname]
                     if k not in kwargs:
-                        kwargs[k] = transform(get_param(arg, params))
+                        kwargs[k] = transform(get_param(argname, params))
 
             return fn(*args, **kwargs, **options)
 
@@ -170,9 +169,9 @@ def formula(model=None, ignore=(), options=(), invalid="raise", positional=0, fo
             Return the decorated function.
             """
 
-            model_lst = (model,) if isinstance(model, str) else tuple(model)
-            decorated.models = frozenset([*model_lst, *decorated.models])
-            for m in model_lst:
+            lst = (model,) if isinstance(model, str) else tuple(model)
+            decorated.models = frozenset([*lst, *decorated.models])
+            for m in lst:
                 FUNCTIONS[fn.__name__][m] = decorated
             return decorated
 
@@ -196,7 +195,7 @@ def formula(model=None, ignore=(), options=(), invalid="raise", positional=0, fo
 #
 # Generic formulas
 #
-def R0(model, params=None, **kwargs) -> Real:
+def R0(model, params=None, **kwargs) -> float:
     """
     Compute R0 for the given model using epidemiological parameters.
 
@@ -226,7 +225,7 @@ def R0(model, params=None, **kwargs) -> Real:
     return FUNCTIONS_R0[model](params, **kwargs)
 
 
-def R0_from_K(model, params=None, **kwargs) -> Real:
+def R0_from_K(model, params=None, **kwargs) -> float:
     """
     Compute R0 for the given model using the exponential growth factor K.
 
@@ -256,7 +255,7 @@ def R0_from_K(model, params=None, **kwargs) -> Real:
     return FUNCTIONS_R0_FROM_K[model](params, **kwargs)
 
 
-def beta(model, params=None, **kwargs) -> Real:
+def beta(model, params=None, **kwargs) -> float:
     """
     Compute beta from for the given model using epidemiological parameters.
 
@@ -286,7 +285,7 @@ def beta(model, params=None, **kwargs) -> Real:
     return FUNCTIONS_BETA[model](params, **kwargs)
 
 
-def K(model, params=None, **kwargs) -> Real:
+def K(model, params=None, **kwargs) -> float:
     """
     Compute the exponential growth factor K for the given model.
 

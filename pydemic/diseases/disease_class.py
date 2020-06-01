@@ -9,7 +9,7 @@ import sidekick as sk
 from sidekick import X
 
 import mundi
-from pydemic.types import ImproperlyConfigured
+from .disease_params import DiseaseParams
 from .utils import (
     QualDataT,
     read_table,
@@ -18,11 +18,13 @@ from .utils import (
     world_age_distribution,
     age_adjusted_average,
     set_age_distribution_default,
+    estimate_real_cases,
 )
 from .. import db
+from .. import fitting as fit
 from ..config import set_cache_options
-from ..params import WrappedParams
-from ..utils import to_json, not_implemented
+from ..types import ImproperlyConfigured
+from ..utils import to_json
 
 # Types
 set_cache_options("diseases-api", compress=True)
@@ -39,7 +41,7 @@ class Disease(ABC):
     full_name: str = ""
     path: str = sk.lazy(lambda _: "diseases/" + _.name.lower().replace(" ", "-"))
     abspath: Path = sk.lazy(lambda _: db.DATABASES / _.path)
-    _default_params = sk.lazy(lambda _: WrappedParams(_))
+    _default_params = sk.lazy(lambda _: DiseaseParams(_))
 
     # Constants
     MORTALITY_TABLE_DEFAULT = "default"
@@ -188,15 +190,51 @@ class Disease(ABC):
             ages = age_distribution
         return age_adjusted_average(ages, table[col])
 
-    def epidemic_curve(self, region, new_cases=False, **kwargs) -> pd.DataFrame:
+    def epidemic_curve(
+        self, region, diff=False, smooth=False, real=False, keep_observed=False, window=14, **kwargs
+    ) -> pd.DataFrame:
         """
         Load epidemic curve for the given region.
-        """
-        data = self._epidemic_curve(region, **kwargs)
 
-        if new_cases:
+        Args:
+            region:
+                Mundi r/egion or a string with region code.
+            diff (bool):
+                If diff=True, return the number of new daily cases instead of
+                the accumulated epidemic curves.
+            smooth (bool):
+                If True, return a data frame with raw and smooth columns. The
+                resulting dataframe adopts a MultiIndex created from the
+                product of ["observed", "smooth"] x ["cases", "deaths"]
+            real (bool, str):
+                If True, estimate the real number of cases by trying to correct
+                for some ascertainment rate.
+            keep_observed (bool):
+                If True, keep the raw observed cases under the "cases_observed"
+                and "deaths_observed" columns.
+            window (int):
+                Size of the triangular smoothing window.
+        """
+        data = self._epidemic_curve(mundi.region(region), **kwargs)
+
+        if real:
+            method = "CFR" if real is True else real
+            params = self.params(region=region)
+            real = estimate_real_cases(data, params, method)
+            if keep_observed:
+                rename = {"cases": "cases_observed", "deaths": "deaths_observed"}
+                data = pd.concat([real, data.rename(rename, axis=1)], axis=1)
+            else:
+                data = real
+
+        if diff:
             values = np.diff(data, prepend=0, axis=0)
             data = pd.DataFrame(values, index=data.index, columns=data.columns)
+
+        if smooth:
+            columns = pd.MultiIndex.from_product([["observed", "smooth"], data.columns])
+            data = pd.concat([data, fit.smooth(data, window)], axis=1)
+            data.columns = columns
 
         return data
 
@@ -450,7 +488,7 @@ methods."""
     #
     # Conversions to parameters
     #
-    def params(self, *args, **kwargs) -> WrappedParams:
+    def params(self, *args, **kwargs) -> DiseaseParams:
         """
         Wraps disease in a parameter namespace.
 
@@ -459,7 +497,7 @@ methods."""
         """
         if not args and not kwargs:
             return self._default_params
-        return WrappedParams(self, *args, **kwargs)
+        return DiseaseParams(self, *args, **kwargs)
 
     def to_record(self, **kwargs) -> sk.record:
         """
