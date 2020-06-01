@@ -57,7 +57,7 @@ def epidemic_curve(model, cases, *args, **kwargs):
         model:
             A string like "SIR", "SEIR" or "SEAIR" identifying model type.
         cases:
-            A dataframe of "cases" and "deaths" columns.
+            A dataframe of "cases" and "deaths" columns with cumulative values..
 
     Keyword Args:
         Keyword arguments are passed to the work function that implements
@@ -76,7 +76,7 @@ def epidemic_curve(model, cases, *args, **kwargs):
 
 
 @formula("SIR", **FORMULA_OPTS)
-def sir_curves(cases, gamma, R0, population, dt=1, **kwargs):
+def sir_curves(cases, gamma, population, dt=1, **kwargs):
     """
     Infer SIR curves from experimental data.
     """
@@ -100,7 +100,7 @@ def sir_curves(cases, gamma, R0, population, dt=1, **kwargs):
 
 
 @formula("SEIR", **FORMULA_OPTS)
-def seir_curves(cases, gamma, sigma, R0, population, dt=1, **kwargs):
+def seir_curves(cases, gamma, sigma, population, dt=1, **kwargs):
     """
     Infer SEIR curves from experimental data.
     """
@@ -125,7 +125,7 @@ def seir_curves(cases, gamma, sigma, R0, population, dt=1, **kwargs):
 
 
 @formula("SEAIR", **FORMULA_OPTS)
-def seair_curves(cases, gamma, sigma, prob_symptoms, rho, R0, population, dt=1, **kwargs):
+def seair_curves(cases, gamma, sigma, prob_symptoms, rho, population, dt=1, **kwargs):
     """
     Infer SEAIR curves from experimental data.
     """

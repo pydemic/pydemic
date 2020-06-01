@@ -1,10 +1,11 @@
 from typing import Sequence
-
+import statsmodels.api as sm
 import numpy as np
 import pandas as pd
 
 from ..types import ValueStd
 from ..utils import trim_zeros
+from .. import formulas
 
 
 def growth_factor(ys: Sequence) -> ValueStd:
@@ -54,34 +55,6 @@ def growth_factors(data):
     return pd.DataFrame(growth_factors, index=["value", "std"]).T
 
 
-def average_growth(results, tol=1e-9) -> ValueStd:
-    """
-    Compute average growth factor from sequence of results, weighting
-    by the inverse variance.
-
-    Args:
-        results:
-            A sequence of (value, std) tuples.
-        tol:
-            A normalization term to avoid problem with null variances.
-    """
-    if isinstance(results, pd.DataFrame):
-        results = results.values
-
-    weights = 0.0
-    cum_var = 0.0
-    N = 0
-
-    for (value, std) in results:
-        var = std * std + tol
-        weight = 1 / var
-        weights += weight
-        cum_var += weight * value
-        N += 1
-
-    return ValueStd(cum_var / weights, np.sqrt(cum_var / N))
-
-
 def exponential_extrapolation(ys: Sequence, n: int, append=False) -> np.ndarray:
     """
     Receive a sequence  and return the next n points of the series
@@ -103,3 +76,97 @@ def exponential_extrapolation(ys: Sequence, n: int, append=False) -> np.ndarray:
     if append:
         return np.concatenate([ys, extrapolation])
     return extrapolation
+
+
+def R0_from_cases(model, cases, params, method="OLS") -> ValueStd:
+    """
+    Read curve of cases and adjust the model R0 from cases.
+    """
+    # Methods that infer the growth ratio between successive observations
+    if method.startswith("ratio-"):
+        r, dr = growth_ratio_from_cases(cases, method=method[6:])
+
+        R0 = formulas.R0_from_K(model, params, K=np.log(r))
+        R0_plus = formulas.R0_from_K(model, params, K=np.log(r - min(dr, 0.9 * r)))
+        R0_minus = formulas.R0_from_K(model, params, K=np.log(r + dr))
+
+    # Methods that infer the exponential growth factor
+    elif method in ("OLS",):
+        K, dK = growth_factor_from_cases(cases, method=method)
+
+        R0 = formulas.R0_from_K(model, params, K=K)
+        R0_plus = formulas.R0_from_K(model, params, K=K - dK)
+        R0_minus = formulas.R0_from_K(model, params, K=K + dK)
+
+    else:
+        raise ValueError(f"invalid method: {method!r}")
+
+    dR0 = abs(R0_plus - R0_minus) / 2
+    return ValueStd(R0, dR0)
+
+
+def growth_ratio_from_cases(curves, method="GGBayes", **kwargs) -> ValueStd:
+    """
+    Return the growth rate combining the "cases" and "deaths" columns of an
+    epidemic curve.
+
+    Args:
+        curves:
+            A DataFrame with "cases" and "deaths" columns.
+        method:
+            Statistical method used to infer growth ratio.
+            * GGBayes - A Bayesian Gamma distributed Growth rate.
+
+    Keyword Args:
+        Additional keyword arguments are passed to the smoothed_diff function.
+
+    See Also:
+        :func:`pydemic.fitting.smoothed_diff`
+    """
+
+    if method == "GGBayes":
+        fn = lambda col: clean_exponential(curves[col], diff=True, **kwargs)
+        cases, deaths = map(fn, curves.columns)
+        ratios = [growth_factor(cases), growth_factor(deaths)]
+        return average_inference(ratios)
+    else:
+        raise ValueError
+
+
+def growth_factor_from_cases(curves, method="OLS", **kwargs) -> ValueStd:
+    """
+    Return the growth rate combining the "cases" and "deaths" columns of an
+    epidemic curve.
+
+    Args:
+        curves:
+            A DataFrame with "cases" and "deaths" columns.
+        method:
+            Statistical method used to infer the growth factor.
+            * 'OLS' - ordinary least squares.
+
+    Keyword Args:
+        Additional keyword arguments are passed to the smoothed_diff function.
+
+    See Also:
+        :func:`pydemic.fitting.smoothed_diff`
+    """
+
+    if method == "OLS":
+
+        def stats(col):
+            data = curves[col]
+            data = clean_exponential(data, diff=True, **kwargs)
+            Y = np.log(data / data[0])
+            X = np.arange(len(Y))
+            ols = sm.OLS(Y, sm.add_constant(X))
+            res = ols.fit()
+            _, K = res.params
+            ci = res.conf_int()
+            dK = (ci[1, 1] - ci[1, 0]) / 2
+            return ValueStd(K, dK)
+
+        cases, deaths = map(stats, curves.columns)
+        return average_inference([cases, deaths])
+    else:
+        raise ValueError

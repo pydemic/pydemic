@@ -1,9 +1,11 @@
 import numpy as np
 import pandas as pd
 
-from .epidemic_curves import CURVE_OPTIONS, infectious_curve
+from .epidemic_curves import infectious_curve
 from .. import formulas
 from ..formulas import formula
+
+CURVE_OPTIONS = ("dt", "Rt_smooth", "smooth_days", "ret_Rt")
 
 
 @formula("SIR", positional=1, options=CURVE_OPTIONS, invalid="pass")
