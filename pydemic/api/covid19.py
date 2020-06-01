@@ -1,6 +1,7 @@
 import time
 from functools import lru_cache
 
+import numpy as np
 import pandas as pd
 import requests
 import sidekick as sk
@@ -56,19 +57,38 @@ def auto_api(code, **kwargs):
 
 @epidemic_curve_api("corona-api.com")
 @ttl_cache("covid-19", timeout=TIMEOUT)
-@sk.retry(10, sleep=0.5)
 def corona_api(code) -> pd.DataFrame:
     """
     Load country's cases, deaths and recovered timeline from corona-api.com.
     """
+
+    data = download_corona_api(code)
+    data = data["data"]["timeline"]
+    df = pd.DataFrame(data).rename({"confirmed": "cases"}, axis=1)
+
+    df = df[["date", "cases", "deaths", "recovered"]]
+    df["date"] = pd.to_datetime(df["date"])
+    df = df.drop_duplicates("date", keep="first").set_index("date")
+    df = df[df.fillna(0).sum(1) > 0].sort_index()
+
+    # Fill missing data with previous measurement
+    start, end = df.index[[0, -1]]
+    full_index = pd.to_datetime(np.arange((end - start).days), unit="D", origin=start)
+    df = df.reindex(full_index).fillna(method="ffill")
+
+    return df.astype(int)
+
+
+@sk.retry(10, sleep=0.5)
+def download_corona_api(code) -> dict:
+    log.info(f"[api/corona-api] Downloading data from corona API ({code})")
+
     url = "http://corona-api.com/countries/{code}?include=timeline"
     response = requests.get(url.format(code=code))
-    data = response.json()
-    df = pd.DataFrame(data["data"]["timeline"]).rename({"confirmed": "cases"}, axis=1)
-    df = df[["date", "cases", "deaths", "recovered"]]
-    df.index = pd.to_datetime(df.pop("date"))
-    df = df[df.fillna(0).sum(1) > 0]
-    return df.sort_index()
+    size = len(response.content) // 1024
+
+    log.info(f"[api/corona-api] Download ended with {size} kb")
+    return response.json()
 
 
 @epidemic_curve_api("brasil.io")
@@ -80,13 +100,12 @@ def brasil_io(code):
 
 
 @ttl_cache("covid-19", timeout=TIMEOUT)
-@sk.retry(10, sleep=0.5)
 def brasil_io_cases() -> pd.DataFrame:
     """
     Return the complete dataframe of cases and deaths from Brasil.io.
     """
-    url = "https://data.brasil.io/dataset/covid19/caso_full.csv.gz"
-    df = pd.read_csv(url)
+
+    df = download_brasil_io_cases()
     cols = {
         "last_available_confirmed": "cases",
         "confirmed": "cases",
@@ -107,7 +126,7 @@ def brasil_io_cases() -> pd.DataFrame:
     cases = cases.dropna().reset_index(drop=True)
     cases = cases.rename({"code": "id"}, axis=1)
 
-    log.info("Merging data from brasil.io")
+    log.info(f"[api/brasil.io] Merging {len(df)} entries")
 
     result = {}
     for col in ["cases", "deaths"]:
@@ -116,11 +135,23 @@ def brasil_io_cases() -> pd.DataFrame:
         data = data.melt(id_vars=["id"], var_name="date", value_name=col)
         data = data[data[col] >= 0]
         result[col] = data
-    return (
+    out = (
         pd.merge(*result.values(), on=["id", "date"], how="outer")
         .fillna(0)
         .astype({"cases": int, "deaths": int})
     )
+
+    log.info("[api/brasil.io] Merge complete")
+
+    return out
+
+
+@sk.retry(10, sleep=0.5)
+def download_brasil_io_cases():
+    log.info("[api/brasil.io] Downloading data from Brasil.io")
+
+    url = "https://data.brasil.io/dataset/covid19/caso_full.csv.gz"
+    return pd.read_csv(url)
 
 
 #
@@ -187,7 +218,6 @@ def subregion_code(country, region, subregion):
         except LookupError:
             return region.id
 
-    raise ValueError(country, region, subregion)
     return country + "-" + region
 
 
@@ -204,8 +234,8 @@ def google_mobility_map_codes() -> dict:
 
 
 if __name__ == "__main__":
-    # sk.import_later("..cli.api:covid19_api_downloader", package=__package__)()
+    sk.import_later("..cli.api:covid19_api_downloader", package=__package__)()
 
-    df = google_mobility_data()
-    df = fix_google_mobility_data_region_codes(df)
-    print(df)
+    # df = google_mobility_data()
+    # df = fix_google_mobility_data_region_codes(df)
+    # print(df)
