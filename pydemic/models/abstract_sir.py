@@ -28,7 +28,6 @@ class AbstractSIR(Model, ABC):
         }
 
     # Basic epidemiological parameters
-    R0: float = param_property("R0", default=2.0)
     infectious_period: float = param_property("infectious_period", default=1.0)
 
     # Simulation state
@@ -36,9 +35,6 @@ class AbstractSIR(Model, ABC):
     exposed: float = sk.alias("infectious")  # an alias to infectious
     infectious: float = state_property(1)
     recovered: float = state_property(2)
-
-    initial_cases: float = sk.lazy(lambda self: self._initial_cases())
-    initial_infected: float = sk.lazy(lambda self: self._initial_infected())
 
     #
     # Accessors for parameters from other models
@@ -96,11 +92,13 @@ class AbstractSIR(Model, ABC):
         return pd.Series(res * self.gamma, index=I.index)
 
     def get_data_cases(self, idx):
-        infections = self["force", idx] * self["susceptible", idx] * self.Qs
+        infections = self["force"] * self["susceptible"] * self.Qs
         res = integrate.cumtrapz(infections, self.times, initial=0.0)
-        return pd.Series(res + self.initial_cases, index=infections.index)
+        data = pd.Series(res + self.initial_cases, index=infections.index)
+        return data[idx] if idx is not None else data
 
     def get_data_infected(self, idx):
-        infections = self["force", idx] * self["susceptible", idx]
+        infections = self["force"] * self["susceptible"]
         res = integrate.cumtrapz(infections, self.times, initial=0.0)
-        return pd.Series(res + self.initial_infected, index=infections.index)
+        data = pd.Series(res + self.initial_infected, index=infections.index)
+        return data[idx] if idx is not None else data

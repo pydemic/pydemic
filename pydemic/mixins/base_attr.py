@@ -82,9 +82,10 @@ class BaseAttr(MutableMapping):
     def __setitem__(self, item, value):
         group, key = normalize_key(item)
         if key:
-            self._cache[group][key] = value
+            self._set_item(group, key, value)
         else:
-            self._cache[group].update(value)
+            for k, v in value.items():
+                self._set_item(group, k, v)
 
     def __delitem__(self, item):
         group, key = normalize_key(item)
@@ -92,6 +93,10 @@ class BaseAttr(MutableMapping):
             del self._cache[group][key]
         else:
             del self._cache[group]
+
+    def _set_item(self, group, key, value):
+        # Can be overridden by subclasses
+        self._cache[group][key] = value
 
     def to_dict(self, flat=False):
         """

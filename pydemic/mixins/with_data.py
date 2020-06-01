@@ -1,6 +1,7 @@
 from abc import ABC
 from typing import Callable, TYPE_CHECKING
 
+import numpy as np
 import pandas as pd
 import sidekick as sk
 
@@ -9,6 +10,8 @@ from .data_transforms import DATA_TRANSFORMS, MODEL_TRANSFORMS
 if TYPE_CHECKING:
     from .meta_info import Meta
 
+ListLike = (list, np.ndarray, pd.Index)
+
 
 class WithDataMixin(ABC):
     """
@@ -16,7 +19,7 @@ class WithDataMixin(ABC):
     information about a simulation.
     """
 
-    _meta: "Meta"
+    meta: "Meta"
     data: pd.DataFrame
     times: pd.Index
     get_param: Callable[[str], float]
@@ -41,11 +44,11 @@ class WithDataMixin(ABC):
                     except ValueError:
                         raise KeyError(item)
 
-            elif isinstance(first, list):
+            elif isinstance(first, ListLike):
                 data = [self[col, idx] for col in first]
                 return pd.concat(data, axis=1)
 
-        elif isinstance(item, (str, list)):
+        elif isinstance(item, (str, *ListLike)):
             return self.__getitem__((item, None))
 
         elif isinstance(item, slice):
@@ -69,7 +72,7 @@ class WithDataMixin(ABC):
             return method(idx)
 
         # The next step is to check if requested column is in the state space
-        name = self._meta.data_aliases.get(name, name)
+        name = self.meta.data_aliases.get(name, name)
         try:
             if idx is None:
                 data = self.data[name]
@@ -83,7 +86,7 @@ class WithDataMixin(ABC):
         # Finally, it may correspond to a parameter. We have two options. It may
         # be explicitly stored as a time-series or it may be computed implicitly
         # from the other parameters.
-        if name in self._meta.params.all:
+        if name in self.meta.params.all:
             x = self.get_param(name)
             times = self.times[idx or slice(None, None)]
             return pd.Series([x] * len(times), index=times, name=name)

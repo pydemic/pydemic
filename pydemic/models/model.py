@@ -1,7 +1,7 @@
 import datetime
 from copy import copy
 from types import MappingProxyType
-from typing import Sequence, Callable, Mapping, TYPE_CHECKING
+from typing import Sequence, Callable, Mapping, TYPE_CHECKING, Union
 
 import numpy as np
 import pandas as pd
@@ -11,9 +11,10 @@ from .clinical_acessor import Clinical
 from .metaclass import ModelMeta
 from .. import fitting as fit
 from .. import formulas
-from ..diseases import Disease, disease as get_disease
+from ..diseases import Disease, DiseaseParams, disease as get_disease
 from ..logging import log
 from ..mixins import (
+    Meta,
     WithParamsMixin,
     WithDataModelMixin,
     WithInfoMixin,
@@ -21,7 +22,7 @@ from ..mixins import (
     WithRegionDemography,
 )
 from ..packages import plt
-from ..utils import today, not_implemented, extract_keys
+from ..utils import today, not_implemented, extract_keys, param_property
 
 NOW = datetime.datetime.now()
 TODAY = datetime.date(NOW.year, NOW.month, NOW.day)
@@ -45,12 +46,16 @@ class Model(
     Base class for all models.
     """
 
+    meta: Meta
+
     class Meta:
         model_name = "Model"
         data_aliases = {}
 
     # Initial values
     state: np.ndarray = None
+    initial_cases: float = sk.lazy(lambda self: self._initial_cases())
+    initial_infected: float = sk.lazy(lambda self: self._initial_infected())
 
     # Initial time
     date: datetime.date = None
@@ -60,6 +65,7 @@ class Model(
     times: pd.Index = sk.property(lambda m: m.data.index)
 
     # Common epidemiological parameters
+    R0: float = param_property("R0", default=2.0)
     K = sk.property(not_implemented)
     duplication_time = property(lambda self: np.log(2) / self.K)
 
@@ -68,6 +74,7 @@ class Model(
     clinical_model: type = None
     clinical_params: Mapping = MappingProxyType({})
     disease: Disease = None
+    disease_params: DiseaseParams
 
     @property
     def ui(self) -> "UIProperty":
@@ -113,7 +120,12 @@ class Model(
 
         for k, v in kwargs.items():
             if hasattr(self, k):
-                setattr(self, k, v)
+                try:
+                    setattr(self, k, v)
+                except AttributeError:
+                    name = type(self).__name__
+                    msg = f"cannot set '{k}' attribute in '{name}' model"
+                    raise AttributeError(msg)
             else:
                 raise TypeError(f"invalid arguments: {k}")
 
@@ -123,9 +135,16 @@ class Model(
     def __str__(self):
         return self.name
 
+    def _initial_cases(self):
+        raise NotImplementedError("must be implemented in subclass")
+
+    def _initial_infected(self):
+        raise NotImplementedError("must be implemented in subclass")
+
     #
     # Pickling and copying
     #
+    # noinspection PyUnresolvedReferences
     def copy(self, **kwargs):
         """
         Copy instance possibly setting new values for attributes.
@@ -213,13 +232,17 @@ class Model(
             except KeyError:
                 pass
             else:
-                opt["name"] = name.format(**opt)
+                opt["name"] = name.format(n=n, **opt)
 
         return ModelGroup(self.copy(**opt) for opt in options)
 
-    def split_children(self, options=(), **kwargs) -> "ModelGroup":
+    def split_children(self, options=MappingProxyType({}), **kwargs) -> "ModelGroup":
         """
         Similar to split, but split into the children of the given class.
+
+        Args:
+            options:
+                A mapping between region or region id
         """
 
         from ..model_group import ModelGroup
@@ -234,9 +257,9 @@ class Model(
         for attr in ("disease",):
             kwargs.setdefault(attr, getattr(self, attr))
 
-        return ModelGroup.from_children(self.region, type(self), **kwargs)
+        return ModelGroup.from_children(self.region, type(self), options, **kwargs)
 
-    def reset_data(self, date=None, **kwargs):
+    def reset(self, date: Union[datetime.date, float] = None, **kwargs):
         """
         Return a copy of the model setting the state to the final state. If a
         positional "date" argument is given, reset to the state to the one in the
@@ -253,10 +276,9 @@ class Model(
         if date is None:
             date = self.date
             time = self.time
-
-        if isinstance(date, (float, int)):
-            time = date
-            date: pd.datetime = self.to_date(date)
+        elif isinstance(date, (float, int)):
+            time = float(date)
+            date = self.to_date(date)
         else:
             time: float = self.to_time(date)
 
@@ -287,6 +309,12 @@ class Model(
         )
         return new
 
+    def epidemic_model_name(self):
+        """
+        Return the epidemic model name.
+        """
+        return self.meta.model_name
+
     #
     # Initial conditions
     #
@@ -299,15 +327,15 @@ class Model(
                 state = self.initial_state(**kwargs)
             self.state = np.array(state, dtype=float)
 
-        alias = self._meta.data_aliases
+        alias = self.meta.data_aliases
         for k, v in list(kwargs.items()):
             if k in alias:
                 del kwargs[k]
                 kwargs[alias[k]] = v
-        components = extract_keys(self._meta.variables, kwargs)
+        components = extract_keys(self.meta.variables, kwargs)
 
         for k, v in components.items():
-            idx = self._meta.component_index(k)
+            idx = self.meta.get_variable_index(k)
             self.state[idx] = v
 
     def set_data(self, data):
@@ -315,7 +343,7 @@ class Model(
         Force a dataframe into simulation state.
         """
         data = data.copy()
-        data.columns = [self._meta.data_aliases.get(c, c) for c in data.columns]
+        data.columns = [self.meta.data_aliases.get(c, c) for c in data.columns]
 
         self.set_ic(state=data.iloc[0])
         self.data = data.reset_index(drop=True)
@@ -325,7 +353,7 @@ class Model(
         self.info["observed.dates"] = data.index[[0, -1]]
         self._initialized = True
 
-    def set_cases(self, cases=None, notification_rate=None, adjust_R0=False, save_cases=False):
+    def set_cases(self, curves=None, adjust_R0=False, save_cases=False):
         """
         Initialize model from a dataframe with the deaths and cases curve.
 
@@ -334,55 +362,57 @@ class Model(
         is set.
 
         Args:
-            cases:
+            curves:
                 Dataframe with cumulative ["cases", "deaths"] columns. If not given,
                 or None, fetches from disease.epidemic_curves(info)
-            notification_rate:
-                If given, controls the fraction of cases that where observed.
             adjust_R0:
                 If true, adjust R0 from the observed cases.
             save_cases:
                 If true, save the cases curves into the model.info["observed.cases"] key.
         """
 
-        if cases is None:
+        if curves is None:
             if self.region is None or self.disease is None:
                 msg = 'must provide both "region" and "disease" or an explicit cases ' "curve."
                 raise ValueError(msg)
-            cases = self.region.pydemic.epidemic_curve(self.disease)
+            curves = self.region.pydemic.epidemic_curve(self.disease, real=True)
 
-        model = self._meta.model_name
         if adjust_R0:
-            method = "OLS" if adjust_R0 is True else adjust_R0
-            Re, _ = value = fit.adjust_R0_from_cases(model, cases, self, method=method)
+            method = "RollingOLS" if adjust_R0 is True else adjust_R0
+            Re, _ = value = fit.estimate_R0(self, curves, Re=True, method=method)
             assert np.isfinite(Re), f"invalid value for R0: {value}"
-
             self.R0 = Re
-            self.info["stats.R0"] = value
 
-        # Select notification rate and save it in the info dictionary for reference
-        if notification_rate in ("deaths", "CFR", None):
-            CFR = self.disease_params.CFR
-            last = cases.iloc[-1]
-            empirical_CFR = last["deaths"] / last["cases"]
-            notification_rate = CFR / empirical_CFR
-        self.info["cases.notification_rate"] = notification_rate
+        # Save notification it in the info dictionary for reference
+        if "cases_observed" in curves:
+            tf = curves.index[-1]
+            rate = curves.loc[tf, "cases_observed"] / curves.loc[tf, "cases"]
+        else:
+            rate = 1.0
+        self.info["observed.notification_rate"] = rate
 
         # Save simulation state from data
-        curve = cases["cases"] / notification_rate
+        model = self.epidemic_model_name()
+        curve = fit.cases(curves)
         data = fit.epidemic_curve(model, curve, self)
         self.set_data(data)
-        self.initial_cases = curve.iloc[0]
+        try:
+            pred_cases = self["cases"]
+        except KeyError:
+            log.warn("Could not determine model cases")
+        else:
+            self.initial_cases -= pred_cases.iloc[-1] - curve.iloc[-1] + 1000
 
         if adjust_R0:
             self.R0 /= self["susceptible:final"] / self.population
+            self.info["observed.R0"] = self.R0
 
         # Optionally save cases curves into the info dictionary
         if save_cases:
             key = "observed.cases" if save_cases is True else save_cases
-            df = cases.copy()
+            df = curves.copy()
             df["cases"] = curve
-            df["cases_raw"] = cases["cases"]
+            df["cases_raw"] = curves["cases"]
             self.info[key] = df
 
     def initial_state(self, cases=None, **kwargs):
@@ -391,7 +421,7 @@ class Model(
         """
         if cases is not None:
             kwargs.setdefault("population", self.population)
-            return formulas.initial_state(self._meta.model_name, cases, self, **kwargs)
+            return formulas.initial_state(self.epidemic_model_name(), cases, self, **kwargs)
         return self._initial_state()
 
     def _initial_state(self):
@@ -426,6 +456,9 @@ class Model(
         data = np.zeros((steps, *shape))
         date = self.date
 
+        if self.info.get("event.simulation_start") is None:
+            self.info.save_event("simulation_start")
+
         self.run_to_fill(data, ts)
         extra = pd.DataFrame(data, columns=self.data.columns, index=ts)
 
@@ -454,7 +487,7 @@ class Model(
     #
     # Utility methods
     #
-    def to_dates(self, times: Sequence, start_date=None) -> Sequence[datetime.date]:
+    def to_dates(self, times: Sequence[int], start_date=None) -> pd.DatetimeIndex:
         """
         Convert an array of numerical times to dates.
 
@@ -472,9 +505,10 @@ class Model(
         if start_date is None:
             start_date = self.date - self.time * DAY
 
+        # noinspection PyTypeChecker
         return pd.to_datetime(times, unit="D", origin=start_date)
 
-    def to_date(self, time: float) -> datetime.date:
+    def to_date(self, time: Union[float, int]) -> datetime.date:
         """
         Convert a single instant to the corresponding datetime
         """
@@ -504,6 +538,18 @@ class Model(
             return self.to_time(date, self.date) - self.time
         return float((date - start_date).days)
 
+    def get_times(self, idx=None):
+        """
+        Get times possibly sliced by an index.
+        """
+        if idx is None:
+            return self.times
+        else:
+            return self.times[idx]
+
+    def get_data_cases(self, idx):
+        raise NotImplementedError
+
     #
     # Plotting and showing information
     #
@@ -530,7 +576,7 @@ class Model(
             data = self[col]
             return data
 
-        components = self._meta.variables if components is None else components
+        components = self.meta.variables if components is None else components
         for col in components:
             data = get_column(col)
             data.plot(**kwargs)
@@ -543,6 +589,6 @@ def make_dataframe(model: Model):
     Create the initial dataframe for the given model.
     """
     data = [model.state]
-    cols = model._meta.variables
+    cols = model.meta.variables
     index = [model.time]
     return pd.DataFrame(data, columns=cols, index=index)

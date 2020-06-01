@@ -25,7 +25,7 @@ class WithResultsMixin(ABC):
     evolution of the epidemic.
     """
 
-    _meta: "Meta"
+    meta: "Meta"
     RESULT_DATES_KEYS = ("start", "end", "peak")
 
     @property
@@ -97,7 +97,7 @@ class WithResultsMixin(ABC):
         """
         Yield keys for the result["data"] dict.
         """
-        yield from self._meta.variables
+        yield from self.meta.variables
         yield "cases"
         yield "attack_rate"
 
@@ -114,7 +114,7 @@ class WithResultsMixin(ABC):
         """
         Yield keys for the result["params"] dict.
         """
-        yield from self._meta.params.primary
+        yield from self.meta.params.primary
 
     def get_results_value_params(self: "Model", key):
         """

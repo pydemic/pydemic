@@ -54,4 +54,5 @@ class AbstractSEIR(Base):
         # the number of elements that enter the "I" compartment.
         E = self["exposed"]
         res = integrate.cumtrapz(self.Qs * self.sigma * E, self.times, initial=0.0)
-        return pd.Series(res + self.initial_cases, index=E.index)
+        data = pd.Series(res + self.initial_cases, index=E.index)
+        return data[idx] if idx is not None else data

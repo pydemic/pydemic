@@ -15,6 +15,7 @@ from .. import utils
 
 if TYPE_CHECKING:
     from ..models import Model  # noqa: F401
+    from ..models.metaclass import ModelMeta
 
 T = TypeVar("T")
 
@@ -51,7 +52,7 @@ class Meta:
         return Meta(kind, **kwargs)
 
     def __init__(self, cls, **kwargs):
-        cls._meta = self
+        cls.meta = self
         self.cls = cls
         self.explicit_kwargs = kwargs.copy()
         self.variables = tuple(p.name for p in sorted(iter_state_variables(cls)))
@@ -73,8 +74,15 @@ class Meta:
         if invalid:
             raise TypeError(f"invalid arguments: {invalid}")
 
+    def get_variable_index(self, name):
+        """
+        Return index from variable name or alias.
+        """
+        name = self.data_aliases.get(name, name)
+        return self.variables.index(name)
+
     def __repr__(self):
-        return f"<{self.cls.__name__}._meta object>"
+        return f"<{self.cls.__name__}.meta object>"
 
 
 def explicit_keywords(cls, self=False):
@@ -101,18 +109,16 @@ def iter_state_variables(cls) -> Iterator[utils.state_property]:
             yield value
 
 
-def iter_metas(cls: Type["Model"], self=False):
+def iter_metas(cls: "ModelMeta", self=False):
     """
     Iterate over _meta objects of parent classes.
     """
     if self:
-        yield cls._meta
+        yield cls.meta
 
     for base in cls.mro()[1:]:
-        try:
-            yield base._meta
-        except AttributeError:
-            pass
+        if hasattr(base, "meta"):
+            yield base.meta
 
 
 def get_base_meta_attr(cls, prop, default):
@@ -137,7 +143,7 @@ def data_aliases(cls, extra=None):
     out = {}
     for base in reversed(cls.__bases__):
         try:
-            out.update(base._meta.data_aliases)
+            out.update(base.meta.data_aliases)
         except AttributeError:
             continue
 
