@@ -1,5 +1,4 @@
 from abc import ABC
-from typing import Callable
 
 import sidekick as sk
 
@@ -62,11 +61,15 @@ class ClinicalModel(Model, ABC):
             name = type(self).__name__
             raise AttributeError(f'"{name}" object has no "{item}" attribute')
 
+    def copy(self, **kwargs):
+        kwargs["infection_model"] = self.infection_model.copy()
+        return super().copy(**kwargs)
+
     #
     # Data accessors
     #
     def get_column(self, name, idx):
-        name = self._meta.data_aliases.get(name, name)
+        name = self.meta.data_aliases.get(name, name)
         try:
             return super().get_column(name, idx)
         except ValueError:
@@ -207,7 +210,7 @@ class ClinicalModel(Model, ABC):
     def plot(self, components=None, *, ax=None, logy=False, show=False, **kwargs):
         if components is None:
             self.infection_model.plot(**kwargs)
-            components = self._meta.plot_columns
+            components = self.meta.plot_columns
         super().plot(components, show=show, **kwargs)
 
 
@@ -230,6 +233,16 @@ class ClinicalObserverModel(ClinicalModel, ABC):
     date = sk.delegate_to("infection_model")
     state = sk.delegate_to("infection_model")
 
+    # Methods delegates
+    set_ic = sk.delegate_to("infection_model")
+    set_data = sk.delegate_to("infection_model")
+    set_cases = sk.delegate_to("infection_model")
+    run = sk.delegate_to("infection_model")
+    run_until = sk.delegate_to("infection_model")
+    trim_dates = sk.delegate_to("infection_model")
+    reset = sk.delegate_to("infection_model")
+    epidemic_model_name = sk.delegate_to("infection_model")
+
     def __init__(self, model, params=None, *, date=None, **kwargs):
         if not (date is None or date == model.date):
             raise ValueError("cannot set date")
@@ -240,12 +253,6 @@ class ClinicalObserverModel(ClinicalModel, ABC):
 
     def run_to_fill(self, data, times):
         raise RuntimeError
-
-    def run(self, time):
-        return self.infection_model.run(time)
-
-    def run_until(self, condition: Callable[[Model], bool]):
-        return self.infection_model.run_until(condition)
 
 
 class ClinicalODEModel(ClinicalModel, ODEModel, ABC):

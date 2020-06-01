@@ -20,8 +20,8 @@ class HospitalizationWithOverflow(HospitalizationWithDelay):
     icu_occupancy = param_property(default=0.75)
     hospital_occupancy = param_property(default=0.75)
 
-    icu_surge_capacity = sk.property(_.icu_capacity * (1 - _.icu_occupancy))
-    hospital_surge_capacity = sk.property(_.hospital_capacity * (1 - _.hospital_occupancy))
+    icu_surge_capacity = sk.lazy(_.icu_capacity * (1 - _.icu_occupancy))
+    hospital_surge_capacity = sk.lazy(_.hospital_capacity * (1 - _.hospital_occupancy))
 
     def __init__(self, *args, occupancy=None, **kwargs):
         if occupancy is not None:
@@ -31,13 +31,17 @@ class HospitalizationWithOverflow(HospitalizationWithDelay):
 
     def _icu_capacity(self):
         if self.region is not None:
-            return self.region.icu_capacity
-        return 0.0
+            capacity = self.region.icu_capacity
+            if np.isfinite(capacity):
+                return capacity
+        return self.population
 
     def _hospital_capacity(self):
         if self.region is not None:
-            return self.region.hospital_capacity
-        return 0.0
+            capacity = self.region.hospital_capacity
+            if np.isfinite(capacity):
+                return capacity
+        return self.population
 
     #
     # Data methods
@@ -65,21 +69,21 @@ class HospitalizationWithOverflow(HospitalizationWithDelay):
         """
         # We just want to comput the excess deaths, so we discount the
         # contribution from natural ICUFR that is computed in natural deaths
-        times = sliced(self.times, idx)
         scale = 1 - self.ICUFR
-        area = cumtrapz(self["critical_overflow", idx] * scale, times, initial=0)
-        return pd.Series(area / self.critical_period, index=times)
+        area = cumtrapz(self["critical_overflow"] * scale, self.times, initial=0)
+        data = pd.Series(area / self.critical_period, index=self.times)
+        return sliced(data, idx)
 
     def get_data_hospital_overflow_deaths(self, idx):
         """
         The number of deaths caused by overflowing regular hospital beds.
         """
-        times = sliced(self.times, idx)
-        area = cumtrapz(self["severe_overflow", idx], times, initial=0)
+        area = cumtrapz(self["severe_overflow"], self.times, initial=0)
         cases = area / self.severe_period
         ratio = (self.Qcr / self.Qsv) * self.hospitalization_overflow_bias
         deaths = cases * min(ratio, 1)
-        return pd.Series(deaths, index=times)
+        data = pd.Series(deaths, index=self.times)
+        return sliced(data, idx)
 
     def get_data_overflow_death_rate(self, idx):
         """
@@ -109,9 +113,9 @@ class HospitalizationWithOverflow(HospitalizationWithDelay):
         return pd.Series(data, index=sliced(self.times, idx))
 
     def get_data_hospitalized_cases(self, idx):
-        times = sliced(self.times, idx)
-        area = cumtrapz(self["hospitalized", idx], times, initial=0)
-        return pd.Series(area / self.severe_period, index=times)
+        area = cumtrapz(self["hospitalized"], self.times, initial=0)
+        data = pd.Series(area / self.severe_period, index=self.times)
+        return sliced(data, idx)
 
     def get_data_hospitalized(self, idx):
         demand = self["severe", idx]
@@ -128,9 +132,9 @@ class HospitalizationWithOverflow(HospitalizationWithDelay):
         return pd.Series(data, index=sliced(self.times, idx))
 
     def get_data_icu_cases(self, idx):
-        times = sliced(self.times, idx)
-        area = cumtrapz(self["icu", idx], times, initial=0)
-        return pd.Series(area / self.critical_period, index=times)
+        area = cumtrapz(self["icu"], self.times, initial=0)
+        data = pd.Series(area / self.critical_period, index=self.times)
+        return sliced(data, idx)
 
     def get_data_icu(self, idx):
         demand = self["hospitalized", idx]
@@ -140,6 +144,25 @@ class HospitalizationWithOverflow(HospitalizationWithDelay):
     # Aliases
     get_data_icu_overflow = get_data_critical_overflow
     get_data_hospital_overflow = get_data_severe_overflow
+
+    # Capacities
+    def get_data_hospital_capacity(self, idx):
+        return self._get_param("hospital_capacity", idx)
+
+    def get_data_hospital_surge_capacity(self, idx):
+        return self._get_param("hospital_surge_capacity", idx)
+
+    def get_data_icu_capacity(self, idx):
+        return self._get_param("icu_capacity", idx)
+
+    def get_data_icu_surge_capacity(self, idx):
+        return self._get_param("icu_surge_capacity", idx)
+
+    def _get_param(self, name, idx, value=None):
+        data = self["infectious", idx] * 0
+        data.name = name
+        data += getattr(self, name) if value is None else value
+        return data
 
     #
     # Results methods
@@ -158,3 +181,6 @@ class HospitalizationWithOverflow(HospitalizationWithDelay):
 
     def get_results_value_dates__hospital_overflow(self):
         return self.overflow_date("severe", self.hospital_surge_capacity)
+
+    get_info_value_event__icu_overflow = get_results_value_dates__icu_overflow
+    get_info_value_event__hospital_overflow = get_results_value_dates__hospital_overflow

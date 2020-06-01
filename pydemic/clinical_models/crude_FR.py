@@ -4,7 +4,7 @@ from sidekick import placeholder as _
 from .model import ClinicalObserverModel
 from .utils import delayed_with_discharge
 from ..params import clinical
-from ..utils import param_property, param_alias
+from ..utils import param_property, param_alias, sliced
 
 
 class CrudeFR(ClinicalObserverModel):
@@ -55,9 +55,10 @@ class CrudeFR(ClinicalObserverModel):
         return self["cases", idx] * self.CFR
 
     def get_data_severe(self, idx):
-        data = self["severe_cases", idx]
+        data = self["severe_cases"]
         K = max(self.K, 0)
-        return delayed_with_discharge(data, 0, self.severe_period, K, positive=True)
+        data = delayed_with_discharge(data, 0, self.severe_period, K, positive=True)
+        return sliced(data, idx)
 
     def get_data_severe_cases(self, idx):
         return self["cases", idx] * self.Qsv

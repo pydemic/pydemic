@@ -1,7 +1,7 @@
 from .crude_FR import CrudeFR
 from .utils import delayed, delayed_with_discharge
 from ..params import clinical
-from ..utils import param_property
+from ..utils import param_property, sliced
 
 
 class HospitalizationWithDelay(CrudeFR):
@@ -35,15 +35,19 @@ class HospitalizationWithDelay(CrudeFR):
             return delayed(critical * self.ICUFR, self.critical_period, K)
 
     def get_data_critical(self, idx):
-        data = self["critical_cases", idx]
-        return delayed_with_discharge(data, 0, self.critical_period, self.K, positive=True)
+        data = self["critical_cases"]
+        period = self.critical_period
+        data = delayed_with_discharge(data, 0, period, self.K, positive=True)
+        return sliced(data, idx)
 
     def get_data_severe_cases(self, idx):
         K = max(self.K, 0)
-        return delayed(self["cases", idx] * self.Qsv, self.severe_delay, K)
+        data = delayed(self["cases"] * self.Qsv, self.severe_delay, K)
+        return sliced(data, idx)
 
     def get_data_critical_cases(self, idx):
         K = max(self.K, 0)
-        values = self["severe_cases", idx] * (self.Qcr / self.Qsv)
+        values = self["severe_cases"] * (self.Qcr / self.Qsv)
         delay = self.severe_delay - self.critical_delay
-        return delayed(values, delay, K)
+        data = delayed(values, delay, K)
+        return sliced(data, idx)
