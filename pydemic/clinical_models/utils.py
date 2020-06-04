@@ -9,7 +9,7 @@ def delayed(data, delay, K=0):
     ts = data.index
 
     if K and data.iloc[0]:
-        ts_, data = extend_data(data, ts, delay, K)
+        ts_, data = extend_data(data, ts, delay, max(K, 0.0))
     else:
         ts_ = ts + delay
 

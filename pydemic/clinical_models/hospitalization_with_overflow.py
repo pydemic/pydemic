@@ -176,6 +176,7 @@ class HospitalizationWithOverflow(HospitalizationWithDelay):
                 return date
         return None
 
+    # TODO: convert to events
     def get_results_value_dates__icu_overflow(self):
         return self.overflow_date("critical", self.icu_surge_capacity)
 

@@ -24,6 +24,9 @@ def memory(name) -> joblib.Memory:
     """
     Return the joblib's Memory object with the given name.
     """
+    if isinstance(name, joblib.Memory):
+        return name
+
     path = user_path() / "cache" / name
     path.mkdir(parents=True, exist_ok=True)
     opts = CACHE_OPTIONS.get(name, {})
