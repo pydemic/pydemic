@@ -194,12 +194,7 @@ def get_dict_keys(model, group, namespace):
 
     name = f"get_{namespace}_keys_{group}"
 
-    try:
-        fn = getattr(model, name)
-    except AttributeError:
-        cls = type(model).__name__
-        raise KeyError(f"{cls} instance has no '{group}' {namespace} group")
-    else:
-        keys = fn()
-        extra = extra_keys(model, group, namespace)
-        return {*keys, *extra}
+    fn = getattr(model, name, dict)
+    keys = fn()
+    extra = extra_keys(model, group, namespace)
+    return {*keys, *extra}

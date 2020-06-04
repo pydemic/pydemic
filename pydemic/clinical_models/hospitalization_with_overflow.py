@@ -6,6 +6,7 @@ from sidekick import placeholder as _
 
 from .hospitalization_with_delay import HospitalizationWithDelay
 from ..utils import param_property, sliced
+from ..mixins.info import Event
 
 
 class HospitalizationWithOverflow(HospitalizationWithDelay):
@@ -183,5 +184,10 @@ class HospitalizationWithOverflow(HospitalizationWithDelay):
     def get_results_value_dates__hospital_overflow(self):
         return self.overflow_date("severe", self.hospital_surge_capacity)
 
-    get_info_value_event__icu_overflow = get_results_value_dates__icu_overflow
-    get_info_value_event__hospital_overflow = get_results_value_dates__hospital_overflow
+    def get_info_value_event__icu_overflow(self):
+        date = self.overflow_date("critical")
+        return Event.from_model(self, "icu_overflow", date)
+
+    def get_info_value_event__hospital_overflow(self):
+        date = self.overflow_date("severe")
+        return Event.from_model(self, "hospital_overflow", date)

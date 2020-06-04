@@ -1,5 +1,6 @@
-from typing import Optional, FrozenSet
+from typing import Optional, FrozenSet, Union, Any
 
+import numpy as np
 import pandas as pd
 import sidekick as sk
 
@@ -31,7 +32,7 @@ class CompositePydemicProperty(PydemicProperty):
 
 
 class CompositePyplotProperty(PyplotProperty):
-    pass
+    region: "CompositeRegion"
 
 
 class CompositeRegion(Region):
@@ -41,30 +42,43 @@ class CompositeRegion(Region):
 
     name: str
     regions: FrozenSet[Region]
+    _keys: FrozenSet[str]
 
     pydemic = property(CompositePydemicProperty)
     plot = property(CompositePyplotProperty)
+
+    @property
+    def id(self):
+        try:
+            return self.__dict__["id"]
+        except KeyError:
+            out = "|".join(sorted(map(str, self.regions)))
+            self.__dict__["id"] = out
+        return out
 
     def __new__(cls, sub_regions, **kwargs):
         sub_regions = frozenset(map(region, sub_regions))
         if not sub_regions:
             raise ValueError("cannot start with empty list of regions")
         new = object.__new__(cls)
-        new.__dict__["id"] = id
         new.__dict__["regions"] = sub_regions
+        new.__dict__["_keys"] = frozenset(kwargs)
         new.__dict__.update(**kwargs)
         return new
 
     def __hash__(self):
-        return hash((self.id, self.regions))
+        return hash(self.__getstate__())
 
     def __getstate__(self):
-        return self.id, self.regions
+        args = ((k, self[k]) for k in self._keys)
+        return self.regions, args
 
     def __setstate__(self, state):
-        id_, regions = state
-        self.__dict__["id"] = id_
-        self.__dict__["regions"] = regions
+        state = self.__dict__
+        regions, args = state
+        state["regions"] = regions
+        for k, v in args:
+            state[k] = v
 
     def __str__(self):
         regions = [r.id for r in self.regions]
@@ -80,6 +94,17 @@ class CompositeRegion(Region):
             f"subtype  : {self.subtype}\n"
             f"regions  : {regions}"
         )
+
+    def __eq__(self, other):
+        if isinstance(other, CompositeRegion):
+            keys = self._keys.union(other._keys)
+            equal_attrs = (force_bool(self[k] == other[k]) for k in keys)
+            return self.regions == other.regions and all(equal_attrs)
+        return NotImplemented
+
+    def __repr__(self):
+        cls = type(self).__name__
+        return f"{cls}({self.regions, !r})"
 
     def _get_field(self, key):
         method = AGGREGATE_METHOD.get(key, "single")
@@ -136,6 +161,12 @@ class CompositeRegion(Region):
             raise ValueError("regions do not share a common parent.")
         return parent
 
+    def parents(self, dataframe=False):
+        if dataframe:
+            raise NotImplementedError
+        parent = self.parent
+        return [parent, *parent.parents()]
+
     def children(self, dataframe=False, deep=False, which="both"):
         """
         Return list of children.
@@ -148,3 +179,16 @@ class CompositeRegion(Region):
             for region in self.regions:
                 children.update(region.children(deep=True, which=which))
         return list(children)
+
+
+def force_bool(x: Any) -> bool:
+    """
+    Similar to bool(x), but call the .all() method until object reduces to a
+    real boolean.
+
+    This is useful to test numpy arrays and pandas data structures for equality.
+    """
+    x: Union[bool, np.ndarray] = bool(x)
+    if x is True or x is False:
+        return x
+    return force_bool(x.all())
