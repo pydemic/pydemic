@@ -32,7 +32,7 @@ from .sequences import (
     as_seq,
     is_seq,
 )
-from .dataframe import trim_zeros
+from .dataframe import trim_zeros, force_monotonic
 from .timeseries import accumulate_weekly, day_of_week, weekday_name, trim_weeks
 
 not_implemented = lambda *args: _sk.error(NotImplementedError)

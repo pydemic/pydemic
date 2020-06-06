@@ -175,6 +175,8 @@ def estimate_real_cases(curves: pd.DataFrame, params=None, method="CFR") -> pd.D
         cases, deaths = daily[(daily != 0).all(axis=1)].values.T
         weights = np.log(deaths)
         empirical_CFR = (weights * deaths / cases).sum() / weights.sum()
+        if np.isnan(empirical_CFR):
+            empirical_CFR = 0.0
 
         try:
             CFR = params.CFR

@@ -97,10 +97,12 @@ def pc(n, empty="-"):
     """
     Write number as percentages.
     """
-    if n is None:
+    if n is None or np.isnan(n):
         return empty
-    if n == 0:
+    elif n == 0:
         return "0.0%"
+    elif np.isinf(n):
+        return _("inf") if n > 0 else _("-inf")
     return format_number(100 * n) + "%"
 
 
@@ -108,10 +110,12 @@ def pm(n, empty="-"):
     """
     Write number as parts per thousand.
     """
-    if n is None:
+    if n is None or np.isnan(n):
         return empty
-    if n == 0:
+    elif n == 0:
         return "0.0‰"
+    elif np.isinf(n):
+        return _("inf") if n > 0 else _("-inf")
     return format_number(1000 * n) + "‰"
 
 
@@ -119,10 +123,12 @@ def p10k(n, empty="-"):
     """
     Write number as parts per ten thousand.
     """
-    if n is None:
+    if n is None or np.isnan(n):
         return empty
-    if n == 0:
+    elif n == 0:
         return "0.0‱"
+    elif np.isinf(n):
+        return _("inf") if n > 0 else _("-inf")
     return format_number(10000 * n) + "‱"
 
 
@@ -130,10 +136,12 @@ def p100k(n, empty="-"):
     """
     Write number as parts per 100 thousand.
     """
-    if n is None:
+    if n is None or np.isnan(n):
         return empty
-    if n == 0:
+    elif n == 0:
         return "0.0"
+    elif np.isinf(n):
+        return _("inf") if n > 0 else _("-inf")
     return format_number(100000 * n) + "/100k"
 
 

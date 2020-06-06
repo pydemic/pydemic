@@ -52,7 +52,7 @@ class TestResults:
         assert "foo.bar" in m.results.to_dict(flat=True)
 
         m.run(10)
-        assert m.results.get("foo") is None
+        assert m.results.get("foo") == {}
 
 
 class TestInfo:

@@ -16,6 +16,14 @@ PERIOD_ALIASES = {
     **{"{n}h": datetime.timedelta(hours=n) for n in range(1, 25)},
 }
 
+# TODO: abstract the many available Python caching libs and move this
+# functionality to sidekick
+#
+# References and similar projects
+# - http://joblib.readthedocs.io/
+# - https://cachetools.readthedocs.io/
+# - https://github.com/lonelyenvoy/python-memoization
+
 
 @sk.fn.curry(2)
 def ttl_cache(key, fn, *, timeout=6 * 3600, **cache_kwargs):

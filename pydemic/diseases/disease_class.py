@@ -9,6 +9,7 @@ import sidekick as sk
 from sidekick import X
 
 import mundi
+from pydemic.utils import trim_zeros, force_monotonic
 from .disease_params import DiseaseParams
 from .utils import (
     QualDataT,
@@ -191,7 +192,16 @@ class Disease(ABC):
         return age_adjusted_average(ages, table[col])
 
     def epidemic_curve(
-        self, region, diff=False, smooth=False, real=False, keep_observed=False, window=14, **kwargs
+        self,
+        region,
+        diff=False,
+        smooth=False,
+        real=False,
+        keep_observed=False,
+        window=14,
+        trim_empty="left",
+        keep_reversions=False,
+        **kwargs,
     ) -> pd.DataFrame:
         """
         Load epidemic curve for the given region.
@@ -214,9 +224,19 @@ class Disease(ABC):
                 and "deaths_observed" columns.
             window (int):
                 Size of the triangular smoothing window.
+            keep_reversions (bool):
+                If True, prevent the default behavior of cleaning data that
+                violates a monotonic increasing behavior.
+            trim_empty (str):
+                Direction to trim rows with only null values. By default, it
+                just trims the left hand side of the series (i.e., older entries).
+                This value can be either 'left', 'right', 'both', or 'none'.
+
         """
         data = self._epidemic_curve(mundi.region(region), **kwargs)
-
+        data = trim_zeros(data, trim_empty)
+        if not keep_reversions:
+            data = force_monotonic(data)
         if real:
             method = "CFR" if real is True else real
             params = self.params(region=region)

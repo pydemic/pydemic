@@ -4,7 +4,7 @@ Pydemic
 Epidemiological calculator tuned specifically for COVID-19.
 """
 # flake8: noqa
-__version__ = "0.1.7"
+__version__ = "0.1.8"
 __author__ = "Fábio Mendes"
 
 # noinspection PyUnresolvedReferences
