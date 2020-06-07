@@ -151,7 +151,12 @@ def download_brasil_io_cases():
     log.info("[api/brasil.io] Downloading data from Brasil.io")
 
     url = "https://data.brasil.io/dataset/covid19/caso_full.csv.gz"
-    return pd.read_csv(url)
+    try:
+        return pd.read_csv(url)
+    except requests.HTTPError as e:
+        log.warn(f"[api/brasil.io] error downloading: {e}, using Github fallback")
+        url = "https://github.com/pydemic/databases/raw/master/caso_full.csv.gz"
+        return pd.read_csv(url)
 
 
 #
@@ -189,10 +194,8 @@ def google_mobility_data(cli=False):
 
 
 def fix_google_mobility_data_region_codes(df):
-    print(df)
     data = df[["country_region_code", "sub_region_1", "sub_region_2"]]
     codes = data.apply(subregion_code)
-    print(codes)
     return df
 
 
