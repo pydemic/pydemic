@@ -1,5 +1,6 @@
 import time
 from functools import lru_cache
+from urllib.error import HTTPError
 
 import numpy as np
 import pandas as pd
@@ -153,7 +154,7 @@ def download_brasil_io_cases():
     url = "https://data.brasil.io/dataset/covid19/caso_full.csv.gz"
     try:
         return pd.read_csv(url)
-    except requests.HTTPError as e:
+    except HTTPError as e:
         log.warn(f"[api/brasil.io] error downloading: {e}, using Github fallback")
         url = "https://github.com/pydemic/databases/raw/master/caso_full.csv.gz"
         return pd.read_csv(url)
