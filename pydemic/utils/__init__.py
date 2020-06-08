@@ -1,6 +1,7 @@
 # flake8: noqa
 import sidekick as _sk
 
+from .dataframe import trim_zeros, force_monotonic
 from .datetime import today, now
 from .formatting import (
     fmt,
@@ -32,7 +33,7 @@ from .sequences import (
     as_seq,
     is_seq,
 )
-from .dataframe import trim_zeros, force_monotonic
 from .timeseries import accumulate_weekly, day_of_week, weekday_name, trim_weeks
+from .timing import timed, timeit, log_timing, show_perf_log
 
 not_implemented = lambda *args: _sk.error(NotImplementedError)
