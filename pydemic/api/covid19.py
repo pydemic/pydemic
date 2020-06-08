@@ -1,3 +1,4 @@
+import io
 import time
 from functools import lru_cache
 from urllib.error import HTTPError
@@ -153,11 +154,17 @@ def download_brasil_io_cases():
 
     url = "https://data.brasil.io/dataset/covid19/caso_full.csv.gz"
     try:
-        return pd.read_csv(url)
+        # Brasil.io is now under a Cloudflare CDN and it requires proper
+        # User-Agent headers. This means we cannot download data using pandas
+        # builtin support for URLs in read_csv, since it does not set those
+        # headers accordingly.
+        response = requests.get(url, headers={"User-Agent": "python-requests"})
     except HTTPError as e:
         log.warn(f"[api/brasil.io] error downloading: {e}, using Github fallback")
         url = "https://github.com/pydemic/databases/raw/master/caso_full.csv.gz"
         return pd.read_csv(url)
+    else:
+        return pd.read_csv(io.BytesIO(response.content), compression="gzip")
 
 
 #
@@ -239,7 +246,3 @@ def google_mobility_map_codes() -> dict:
 
 if __name__ == "__main__":
     sk.import_later("..cli.api:covid19_api_downloader", package=__package__)()
-
-    # df = google_mobility_data()
-    # df = fix_google_mobility_data_region_codes(df)
-    # print(df)
