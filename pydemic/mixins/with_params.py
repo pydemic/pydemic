@@ -6,9 +6,9 @@ from numbers import Number
 from typing import Union
 
 import pandas as pd
+
 import sidekick as sk
 from sidekick import placeholder as _
-
 from .params_info import ParamsInfo
 from ..logging import log
 from ..params import Param, param, get_param
@@ -84,6 +84,8 @@ class WithParamsMixin(ABC):
         else:
             raise ValueError(f"{name} is an invalid param name")
 
+        return self
+
     def get_param(self, name, param=False) -> Union[Number, Param]:
         """
         Return the parameter with given name.
@@ -92,7 +94,7 @@ class WithParamsMixin(ABC):
             name:
                 Parameter name.
             param:
-                If True, return a :cls:`Param` instance instead of a value.
+                If True, return a :class:`Param` instance instead of a value.
         """
         if param:
             try:

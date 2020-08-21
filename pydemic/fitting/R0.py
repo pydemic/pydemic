@@ -4,13 +4,16 @@ import numpy as np
 import pandas as pd
 
 from . import K
-from .Rt import ARGS, METHODS_R0, method, rolling_OLS_Rt
+from .Rt import ARGS, METHODS_R0, method, rolling_OLS_Rt, naive_Rt
 from .epidemic_curves import epidemic_curve
 from .utils import cases
+from ..utils import extract_keys
 from .. import formulas
 from ..diseases import disease as get_disease
 from ..docs import docstring
 from ..types import ValueStd
+
+EPICURVE_PARAMS = ["population"]
 
 
 @docstring(args=ARGS)
@@ -34,10 +37,9 @@ def estimate_R0(model, curves: pd.DataFrame, method="OLS", **kwargs) -> ValueStd
 @method("R0", "naive")
 def naive_R0(model, curves: pd.DataFrame, window=14, **kwargs) -> ValueStd:
     """
-    Naive inference of R(t) from Epidemic curves using the naive_Kt() function.
+    Naive inference of R(t) from Epidemic curves using the naive_K() function.
 
     {args}
-
 
     See Also:
         :func:`pydemic.fitting.K.naive_K`
@@ -82,6 +84,25 @@ def rolling_OLS_R0(model: str, curves: pd.DataFrame, window=14, **kwargs) -> Val
     return ValueStd(R0, (high - low) / 2)
 
 
+@docstring(args=ARGS)
+@method("R0", "naive_decay")
+def naive_decay(model: str, curves: pd.DataFrame, window=14, **kwargs) -> ValueStd:
+    """
+    Compute R0 from Rt using the naive_Rt() function and take the
+    average value, weighting the most recent days with an exponential decay.
+
+    {args}
+
+    See Also:
+        :func:`pydemic.fitting.Rt.naive_Rt`
+    """
+    a, b = window if isinstance(window, Sequence) else (window, window)
+    Rt = naive_Rt(model, curves, window=window, **kwargs)
+    weights = np.exp(np.arange(-len(Rt), 0) / b)
+    R0 = np.average(Rt.values, weights=weights, axis=0).mean()
+    return ValueStd(R0, 0)
+
+
 #
 # Auxiliary functions
 #
@@ -91,6 +112,8 @@ def R0_from_K(model, curves, K, Re=False, **kwargs) -> ValueStd:
 
     Wraps a common logic for many functions in this module.
     """
+
+    epi_kwargs = extract_keys(EPICURVE_PARAMS, **kwargs)
 
     if isinstance(model, str):
         params = None
@@ -112,7 +135,7 @@ def R0_from_K(model, curves, K, Re=False, **kwargs) -> ValueStd:
     if Re:
         return ValueStd(K_mean, K_std)
 
-    data = epidemic_curve(model, cases(curves), params)
+    data = epidemic_curve(model, cases(curves), params, **epi_kwargs)
     depletion = data["susceptible"] / data.sum(1)
     factor = 1 / depletion.iloc[-1]
     return ValueStd(K_mean * factor, K_std * factor)

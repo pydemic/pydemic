@@ -1,7 +1,8 @@
 import datetime
+import warnings
 from copy import copy
 from types import MappingProxyType
-from typing import Sequence, Callable, Mapping, TYPE_CHECKING, Union
+from typing import Sequence, Callable, Mapping, Union, TypeVar, TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
@@ -24,6 +25,7 @@ from ..mixins import (
 from ..packages import plt
 from ..utils import today, not_implemented, extract_keys, param_property
 
+T = TypeVar("T")
 NOW = datetime.datetime.now()
 TODAY = datetime.date(NOW.year, NOW.month, NOW.day)
 DAY = datetime.timedelta(days=1)
@@ -74,7 +76,7 @@ class Model(
     clinical_model: type = None
     clinical_params: Mapping = MappingProxyType({})
     disease: Disease = None
-    disease_params: DiseaseParams
+    disease_params: DiseaseParams = None
 
     @property
     def ui(self) -> "UIProperty":
@@ -88,12 +90,6 @@ class Model(
             )
             raise RuntimeError(msg)
         return UIProperty(self)
-
-    @classmethod
-    def create(cls, params=None):
-        new = object.__new__(cls)
-        new.set_params(params)
-        return new
 
     def __init__(
         self, params=None, *, run=None, name=None, date=None, clinical=None, disease=None, **kwargs
@@ -140,6 +136,12 @@ class Model(
 
     def _initial_infected(self):
         raise NotImplementedError("must be implemented in subclass")
+
+    def epidemic_model_name(self):
+        """
+        Return the epidemic model name.
+        """
+        return self.meta.model_name
 
     #
     # Pickling and copying
@@ -309,12 +311,6 @@ class Model(
         )
         return new
 
-    def epidemic_model_name(self):
-        """
-        Return the epidemic model name.
-        """
-        return self.meta.model_name
-
     #
     # Initial conditions
     #
@@ -338,6 +334,8 @@ class Model(
             idx = self.meta.get_variable_index(k)
             self.state[idx] = v
 
+        return self
+
     def set_data(self, data):
         """
         Force a dataframe into simulation state.
@@ -353,7 +351,16 @@ class Model(
         self.info["observed.dates"] = data.index[[0, -1]]
         self._initialized = True
 
-    def set_cases(self, curves=None, adjust_R0=False, save_cases=False):
+        return self
+
+    def set_cases_from_region(self: T) -> T:
+        """
+        Set the number of cases from region.
+        """
+        self.set_cases()
+        return self
+
+    def set_cases(self: T, curves=None, adjust_R0=False, save_observed=False) -> T:
         """
         Initialize model from a dataframe with the deaths and cases curve.
 
@@ -363,21 +370,23 @@ class Model(
 
         Args:
             curves:
-                Dataframe with cumulative ["cases", "deaths"] columns. If not given,
+                Dataframe with cumulative ["cases", "deaths"]  columns. If not given,
                 or None, fetches from disease.epidemic_curves(info)
             adjust_R0:
                 If true, adjust R0 from the observed cases.
-            save_cases:
+            save_observed:
                 If true, save the cases curves into the model.info["observed.cases"] key.
         """
 
         if curves is None:
+            warnings.warn("omitting curves from set_cases will be deprecated.")
             if self.region is None or self.disease is None:
                 msg = 'must provide both "region" and "disease" or an explicit cases ' "curve."
                 raise ValueError(msg)
-            curves = self.region.pydemic.epidemic_curve(self.disease, real=True)
+            curves = self.region.pydemic.epidemic_curve(self.disease)
 
         if adjust_R0:
+            warnings.warn("adjust_R0 argument is deprecated")
             method = "RollingOLS" if adjust_R0 is True else adjust_R0
             Re, _ = value = fit.estimate_R0(self, curves, Re=True, method=method)
             assert np.isfinite(Re), f"invalid value for R0: {value}"
@@ -396,24 +405,25 @@ class Model(
         curve = fit.cases(curves)
         data = fit.epidemic_curve(model, curve, self)
         self.set_data(data)
-        try:
-            pred_cases = self["cases"]
-        except KeyError:
-            log.warn("Could not determine model cases")
-        else:
-            self.initial_cases -= pred_cases.iloc[-1] - curve.iloc[-1] + 1000
+        self.initial_cases = curve.iloc[0]
 
         if adjust_R0:
             self.R0 /= self["susceptible:final"] / self.population
             self.info["observed.R0"] = self.R0
 
         # Optionally save cases curves into the info dictionary
-        if save_cases:
-            key = "observed.cases" if save_cases is True else save_cases
-            df = curves.copy()
+        if save_observed:
+            key = "observed.curves" if save_observed is True else save_observed
+            df = curves.rename(columns={"cases": "cases_raw"})
             df["cases"] = curve
-            df["cases_raw"] = curves["cases"]
             self.info[key] = df
+
+        return self
+
+    def adjust_R0(self, method="RollingOLS"):
+        curves = self["cases"]
+        self.R0, _ = fit.estimate_R0(self, curves, method=method)
+        self.info["observed.R0"] = self.R0
 
     def initial_state(self, cases=None, **kwargs):
         """
@@ -423,6 +433,16 @@ class Model(
             kwargs.setdefault("population", self.population)
             return formulas.initial_state(self.epidemic_model_name(), cases, self, **kwargs)
         return self._initial_state()
+
+    def infect(self, n=1, column="infectious"):
+        """
+        Convert 'n' susceptible individuals to infectious.
+        """
+        last = self.data.index[-1]
+        n = min(n, self.data.loc[last, "susceptible"])
+        self.data.loc[last, column] += n
+        self.data.loc[last, "susceptible"] -= n
+        return self
 
     def _initial_state(self):
         raise NotImplementedError
@@ -439,7 +459,7 @@ class Model(
     #
     # Running simulation
     #
-    def run(self, time):
+    def run(self: T, time) -> T:
         """
         Runs the model for the given duration.
         """
@@ -466,8 +486,9 @@ class Model(
         self.date = date + time * DAY
         self.time = ts[-1]
         self.state = data[-1]
+        return self
 
-    def run_to_fill(self, data, times):
+    def run_to_fill(self: T, data, times) -> T:
         """
         Run simulation to fill pre-allocated array of data.
         """
@@ -546,6 +567,15 @@ class Model(
             return self.times
         else:
             return self.times[idx]
+
+    def get_data_time(self, idx):
+        times = self.get_times(idx)
+        return pd.Series(times, index=times)
+
+    def get_data_date(self, idx):
+        times = self.get_times(idx)
+        dates = self.to_dates(times)
+        return pd.Series(dates, index=times)
 
     def get_data_cases(self, idx):
         raise NotImplementedError

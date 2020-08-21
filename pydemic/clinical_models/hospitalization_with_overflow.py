@@ -68,7 +68,7 @@ class HospitalizationWithOverflow(HospitalizationWithDelay):
         """
         The number of deaths caused by overflowing ICUs.
         """
-        # We just want to comput the excess deaths, so we discount the
+        # We just want to compute the excess deaths, so we discount the
         # contribution from natural ICUFR that is computed in natural deaths
         scale = 1 - self.ICUFR
         area = cumtrapz(self["critical_overflow"] * scale, self.times, initial=0)
@@ -114,6 +114,7 @@ class HospitalizationWithOverflow(HospitalizationWithDelay):
         return pd.Series(data, index=sliced(self.times, idx))
 
     def get_data_hospitalized_cases(self, idx):
+        # TODO: this is probably wrong and computing prevalence at exit!
         area = cumtrapz(self["hospitalized"], self.times, initial=0)
         data = pd.Series(area / self.severe_period, index=self.times)
         return sliced(data, idx)

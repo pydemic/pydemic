@@ -19,6 +19,14 @@ class BaseAttr(MutableMapping):
     __slots__ = ("_model_ref",)
 
     @property
+    def parent(self):
+        model = getattr(self.model, "parent_model", None)
+        if model is None:
+            return None
+        else:
+            return type(self)(model)
+
+    @property
     def _cache(self):
         raise NotImplementedError
 
@@ -33,7 +41,12 @@ class BaseAttr(MutableMapping):
         return sum(1 for _ in self)
 
     def __iter__(self) -> Iterator[str]:
-        seen = set()
+        if self.parent:
+            seen = set(self.parent)
+            yield from seen
+        else:
+            seen = set()
+
         prefix = f"get_{self._method_namespace}_keys_"
         n = len(prefix)
 
@@ -61,7 +74,13 @@ class BaseAttr(MutableMapping):
                 return cache[key]
             except KeyError:
                 pass
-            result = get_scalar_item(model, group, key, namespace)
+
+            try:
+                result = get_scalar_item(model, group, key, namespace)
+            except KeyError:
+                if self.parent:
+                    return self.parent[item]
+                raise
 
             # Save in cache only explicit keys
             # This avoid problems with aliases
@@ -76,6 +95,8 @@ class BaseAttr(MutableMapping):
             except KeyError:
                 if out:
                     return out
+                elif self.parent:
+                    return self.parent[group]
                 raise
             return out
 

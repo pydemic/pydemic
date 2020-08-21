@@ -56,7 +56,7 @@ class param_property(property):
 
     def __init__(self, name=None, ro=False, default=NOT_GIVEN):
         if callable(default):
-            default = sk.extract_function(default)
+            default = sk.to_callable(default)
 
         self.name = name
         self.default = default
@@ -91,10 +91,10 @@ class param_transform(property):
     is_derived = True
 
     def __init__(self, prop_name, read, write=None):
-        read = sk.extract_function(read)
+        read = sk.to_callable(read)
 
         if write is not None:
-            write = sk.extract_function(write)
+            write = sk.to_callable(write)
 
         def fget(self):
             try:

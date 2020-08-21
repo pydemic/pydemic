@@ -3,7 +3,6 @@ from typing import Union
 from .covid19_class import Covid19
 from .disease_class import Disease
 from .disease_params import DiseaseParams
-from .utils import estimate_real_cases
 
 covid19 = Covid19("Covid-19")
 DISEASE_MAP = {"covid-19": covid19, "disease": Disease("empty")}

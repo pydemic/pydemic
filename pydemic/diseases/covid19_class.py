@@ -1,3 +1,5 @@
+import pandas as pd
+
 from .disease_class import Disease
 from .utils import lazy_stored_string
 
@@ -18,7 +20,8 @@ class Covid19(Disease):
         "verity": lazy_stored_string("covid-19/mortality-table-verity.txt")
     }
 
-    def _epidemic_curve(self, region, api="auto", **kwargs):
+    @staticmethod
+    def _epidemic_curve(region, api="auto", **kwargs):
         """
         Load epidemic curve for the given region from the internet.
         """
@@ -62,3 +65,20 @@ class Covid19(Disease):
 
     def incubation_period(self, **kwargs):
         return 3.69
+
+    def recommended_ppe(self, severe_days, critical_days, **kwargs):
+        N = severe_days + critical_days
+        a = 1  # / 5
+        b = 1  # / 15
+        df = pd.DataFrame(
+            {
+                "cirurgical_masks": 25 * N,
+                "n95_mask": a * N,
+                "waterproof_apron": 25 * N,
+                "non_sterile_glove": 50 * N,
+                "faceshield": b * N,
+            },
+            index=severe_days.index,
+        )
+        df.columns = pd.MultiIndex.from_tuples(("ppe", c) for c in df.columns)
+        return df

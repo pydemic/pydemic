@@ -225,7 +225,7 @@ def subregion_code(country, region, subregion):
 
     for name in (subregion, region):
         try:
-            region = mundi.region(country_code=country, name=name)
+            region = mundi.region(country_id=country, name=name)
         except LookupError:
             return region.id
 

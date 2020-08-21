@@ -42,7 +42,7 @@ def smoothed_diff(
         **kwargs:
 
     Returns:
-        Either a :cls:`np.ndarray` of smoothed differences or a :cls:`result` value.
+        Either a :class:`np.ndarray` of smoothed differences or a :class:`result` value.
     """
     values = np.asarray(data)
     maximum_value = values.max()
@@ -60,6 +60,8 @@ def smoothed_diff(
     kwargs.setdefault("smoothing_level", 1 / 5)
 
     # Holt exponential smoothing
+    if (values == 0).all():
+        return Result(values, None) if retall else values
     holt = sm.tsa.Holt(values, exponential=not linear, damped=damped)
     res = holt.fit(use_brute=not fast_init, **kwargs)
     out = res.fittedvalues

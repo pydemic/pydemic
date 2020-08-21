@@ -25,13 +25,23 @@ def main(cls, *args, **kwargs):
         if plot:
             m.plot(show=True)
 
-    for cmd, help in list(cls.OPTIONS.items())[::-1]:
+    for cmd, help in options(cls):
         cmd, _, kind = cmd.partition(":")
         kind = kind_map[kind or "float"]
         cmd = cmd.replace("_", "-")
         cli = click.option(f"--{cmd}", help=help, type=kind)(cli)
     cli = click.command()(cli)
     cli()
+
+
+def options(cls):
+    """
+    Return list of options from class.
+    """
+    try:
+        yield from reversed(getattr(cls.meta, "cli_options"))
+    except AttributeError:
+        pass
 
 
 def _main(cls, *args, **kwargs):

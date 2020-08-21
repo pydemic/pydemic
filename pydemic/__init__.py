@@ -21,3 +21,9 @@ from .diseases import disease
 from .params import Params, param, get_param, select_param
 from .model_group import ModelGroup
 from .logging import log
+
+
+# Fix old sidekick versions
+import sidekick as _sidekick
+
+_sidekick.partition_at = _sidekick.partition

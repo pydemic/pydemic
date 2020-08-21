@@ -3,8 +3,8 @@ from typing import Callable, TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
-import sidekick as sk
 
+import sidekick as sk
 from .data_transforms import DATA_TRANSFORMS, MODEL_TRANSFORMS
 
 if TYPE_CHECKING:
@@ -46,7 +46,12 @@ class WithDataMixin(ABC):
 
             elif isinstance(first, ListLike):
                 data = [self[col, idx] for col in first]
-                return pd.concat(data, axis=1)
+                result = pd.concat(data, axis=1)
+                if any(isinstance(c, tuple) for c in result.columns):
+                    result.columns = pd.MultiIndex.from_tuples(
+                        [c if isinstance(c, tuple) else (c, "") for c in result.columns]
+                    )
+                return result
 
         elif isinstance(item, (str, *ListLike)):
             return self.__getitem__((item, None))
@@ -69,7 +74,10 @@ class WithDataMixin(ABC):
         except AttributeError:
             pass
         else:
-            return method(idx)
+            out = method(idx)
+            if isinstance(out, pd.Series):
+                out.name = name
+            return out
 
         # The next step is to check if requested column is in the state space
         name = self.meta.data_aliases.get(name, name)

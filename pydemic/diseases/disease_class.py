@@ -3,13 +3,11 @@ import warnings
 from abc import ABC
 from pathlib import Path
 
-import numpy as np
+import mundi
 import pandas as pd
+
 import sidekick as sk
 from sidekick import X
-
-import mundi
-from pydemic.utils import trim_zeros, force_monotonic
 from .disease_params import DiseaseParams
 from .utils import (
     QualDataT,
@@ -19,10 +17,9 @@ from .utils import (
     world_age_distribution,
     age_adjusted_average,
     set_age_distribution_default,
-    estimate_real_cases,
+    epidemic_curve,
 )
 from .. import db
-from .. import fitting as fit
 from ..config import set_cache_options
 from ..types import ImproperlyConfigured
 from ..utils import to_json
@@ -51,7 +48,9 @@ class Disease(ABC):
     HOSPITALIZATION_TABLE_DEFAULT = "default"
     HOSPITALIZATION_TABLE_ALIASES = {}
     HOSPITALIZATION_TABLE_DESCRIPTIONS = {}
-    PARAMS_BLACKLIST = frozenset({"to_json", "to_record", "to_dict", "params", "epidemic_curve"})
+    PARAMS_BLACKLIST = frozenset(
+        {"to_json", "to_record", "to_dict", "params", "epidemic_curve", "recommended_ppe"}
+    )
 
     def __init__(self, name=None, description=None, full_name=None, path=None):
         self.name = name or self.name or type(self).__name__
@@ -84,7 +83,7 @@ class Disease(ABC):
                 different teams or assumptions about the disease. This argument
                 is a string identifier for that version of the data.
             qualified (bool):
-                If True, return a :cls:`Dataset` namedtuple with
+                If True, return a :class:`Dataset` namedtuple with
                 (data, source, notes) attributes.
             extra (bool):
                 If True, display additional columns alongside with ["IRF", "CFR"].
@@ -112,7 +111,7 @@ class Disease(ABC):
                 different teams or assumptions about the disease. This argument
                 is a string identifier for that version of the data.
             qualified (bool):
-                If True, return a :cls:`Dataset` namedtuple with
+                If True, return a :class:`Dataset` namedtuple with
                 (data, source, notes) attributes.
             extra (bool):
                 If True, display additional columns alongside with ["severe",
@@ -149,6 +148,13 @@ class Disease(ABC):
         if qualified:
             return Dataset(data, source, description)
         return data
+
+    def recommended_ppe(self, severe_days, critical_days, **kwargs):
+        """
+        Recommended usage of personal protection equipment from the number of
+        days x patients in severe and critical condition.
+        """
+        raise NotImplementedError
 
     def case_fatality_ratio(self, **kwargs) -> QualValueT:
         """
@@ -199,8 +205,8 @@ class Disease(ABC):
         real=False,
         keep_observed=False,
         window=14,
-        trim_empty="left",
-        keep_reversions=False,
+        trim="left",
+        clean=True,
         **kwargs,
     ) -> pd.DataFrame:
         """
@@ -208,7 +214,7 @@ class Disease(ABC):
 
         Args:
             region:
-                Mundi r/egion or a string with region code.
+                Mundi region or a string with region code.
             diff (bool):
                 If diff=True, return the number of new daily cases instead of
                 the accumulated epidemic curves.
@@ -218,47 +224,39 @@ class Disease(ABC):
                 product of ["observed", "smooth"] x ["cases", "deaths"]
             real (bool, str):
                 If True, estimate the real number of cases by trying to correct
-                for some ascertainment rate.
+                for ascertainment rate.
             keep_observed (bool):
                 If True, keep the raw observed cases under the "cases_observed"
                 and "deaths_observed" columns.
             window (int):
-                Size of the triangular smoothing window.
-            keep_reversions (bool):
-                If True, prevent the default behavior of cleaning data that
+                Size of the triangular smoothing window. Used only if smooth=True.
+            clean (bool):
+                If False, prevent the default behavior of cleaning data that
                 violates a monotonic increasing behavior.
-            trim_empty (str):
+            trim (str):
                 Direction to trim rows with only null values. By default, it
                 just trims the left hand side of the series (i.e., older entries).
                 This value can be either 'left', 'right', 'both', or 'none'.
 
         """
-        data = self._epidemic_curve(mundi.region(region), **kwargs)
-        data = trim_zeros(data, trim_empty)
-        if not keep_reversions:
-            data = force_monotonic(data)
         if real:
-            method = "CFR" if real is True else real
             params = self.params(region=region)
-            real = estimate_real_cases(data, params, method)
-            if keep_observed:
-                rename = {"cases": "cases_observed", "deaths": "deaths_observed"}
-                data = pd.concat([real, data.rename(rename, axis=1)], axis=1)
-            else:
-                data = real
+        else:
+            params = None
 
-        if diff:
-            values = np.diff(data, prepend=0, axis=0)
-            data = pd.DataFrame(values, index=data.index, columns=data.columns)
+        cls = type(self)
+        kwargs.update(
+            diff=diff,
+            smooth=smooth,
+            real=real,
+            keep_observed=keep_observed,
+            window=window,
+            clean=clean,
+        )
+        return epidemic_curve(cls, region, params, **kwargs)
 
-        if smooth:
-            columns = pd.MultiIndex.from_product([["observed", "smooth"], data.columns])
-            data = pd.concat([data, fit.smooth(data, window)], axis=1)
-            data.columns = columns
-
-        return data
-
-    def _epidemic_curve(self, region, **kwargs):
+    @staticmethod
+    def _epidemic_curve(region, **kwargs):
         raise NotImplementedError
 
     #
@@ -359,6 +357,9 @@ methods."""
         Period between infection and symptoms onset.
         """
         return NotImplemented
+
+    def serial_period(self, **kwargs):
+        return self.infectious_period(**kwargs) + self.incubation_period(**kwargs)
 
     def severe_period(self, **kwargs) -> QualValueT:
         """

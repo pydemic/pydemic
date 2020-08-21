@@ -15,6 +15,7 @@ class ValueStd(NamedTuple):
 
     value: float
     std: float
+    is_finite = property(lambda self: np.isfinite(self.value))
 
     @classmethod
     def mean(cls, iterable: Iterable[Tuple[float, float]], tol=1e-9) -> "ValueStd":
@@ -44,8 +45,26 @@ class ValueStd(NamedTuple):
 
         return ValueStd(cum_var / weights, np.sqrt(cum_var / N))
 
+    def apply(self, func, derivative=None):
+        """
+        Transform value by function.
+        """
+        derivative = derivative or numeric_derivative(func)
+        return ValueStd(func(self.value), abs(derivative(self.value)) * self.std)
+
 
 class ImproperlyConfigured(Exception):
     """
     Exception raised when trying to initialize object with improper configuration.
     """
+
+
+def numeric_derivative(func, epsilon=1e-6):
+    """
+    Return a function that computes the numeric first-order derivative of func.
+    """
+
+    def diff(x):
+        return (func(x + epsilon) - func(x)) / epsilon
+
+    return diff

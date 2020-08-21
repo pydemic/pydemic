@@ -2,15 +2,17 @@ from functools import lru_cache
 from numbers import Number
 from typing import Union, NamedTuple
 
-import numpy as np
-import pandas as pd
-import sidekick as sk
-
 import mundi
 import mundi_demography as mdm
-from pydemic import db
-from pydemic.params import get_param
-from pydemic.utils import slugify
+import numpy as np
+import pandas as pd
+
+import sidekick as sk
+from .. import db
+from .. import fitting as fit
+from ..cache import ttl_cache
+from ..params import get_param
+from ..utils import trim_zeros, force_monotonic, slugify
 
 QualDataT = Union[pd.DataFrame, "Dataset"]
 QualValueT = Union[pd.Series, Number, "Dataset"]
@@ -155,35 +157,49 @@ def set_age_distribution_default(dic, value=None, drop=False):
     return ages
 
 
-def estimate_real_cases(curves: pd.DataFrame, params=None, method="CFR") -> pd.DataFrame:
+@ttl_cache("pydemic.disease", timeout=4 * 3600)
+def epidemic_curve(
+    cls,
+    region,
+    params=None,
+    diff=False,
+    smooth=False,
+    real=False,
+    keep_observed=False,
+    window=14,
+    trim="left",
+    clean=True,
+    **kwargs,
+) -> pd.DataFrame:
     """
-    Estimate the real number of cases from the cases and deaths curves.
-
-    Returns:
-        A new dataframe with the corrected "cases" and "deaths" columns.
+    Implements the epidemic_curve method of Disease classes.
     """
+    data = cls._epidemic_curve(mundi.region(region), **kwargs)
+    data.index.name = "date"
+    data = trim_zeros(data, trim)
 
-    if params is None:
-        from . import disease
+    if clean:
+        data = force_monotonic(data)
 
-        params = disease().params()
+    if real:
+        from ..empirical.functions import estimate_real_cases
 
-    data = curves[["cases", "deaths"]]
+        method = "CFR" if real is True else real
+        real = estimate_real_cases(data, params, method)
 
-    if method == "CFR":
-        daily = data.diff().dropna()
-        cases, deaths = daily[(daily != 0).all(axis=1)].values.T
-        weights = np.log(deaths)
-        empirical_CFR = (weights * deaths / cases).sum() / weights.sum()
-        if np.isnan(empirical_CFR):
-            empirical_CFR = 0.0
+        if keep_observed:
+            rename = {"cases": "cases_observed", "deaths": "deaths_observed"}
+            data = pd.concat([real, data.rename(rename, axis=1)], axis=1)
+        else:
+            data = real
 
-        try:
-            CFR = params.CFR
-        except AttributeError:
-            CFR = params.disease_params.CFR
+    if diff:
+        values = np.diff(data, prepend=0, axis=0)
+        data = pd.DataFrame(values, index=data.index, columns=data.columns)
 
-        data["cases"] *= max(empirical_CFR, CFR) / CFR
-        return data
-    else:
-        raise ValueError(f"Invalid estimate method: {method!r}")
+    if smooth:
+        columns = pd.MultiIndex.from_product([["observed", "smooth"], data.columns])
+        data = pd.concat([data, fit.smooth(data, window)], axis=1)
+        data.columns = columns
+
+    return data

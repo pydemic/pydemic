@@ -36,7 +36,7 @@ class Clinical:
             if isinstance(cls, str):
                 return self.clinical_model(cls, **params)
         else:
-            cls = self._model.clinical_model or self._models.CrudeFR
+            cls = self._model.clinical_model or self._models.HospitalizationWithOverflow
         return self.clinical_model(cls, **params)
 
     def __getitem__(self, item):

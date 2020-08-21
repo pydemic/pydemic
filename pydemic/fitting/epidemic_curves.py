@@ -38,7 +38,9 @@ def infectious_curve(cases: pd.DataFrame, gamma=None, smooth=True, **kwargs):
     N = len(cases)
     infectious = np.zeros(N)
 
-    if smooth:
+    if len(cases) <= 1:
+        new_cases = cases
+    elif smooth:
         new_cases = smoothed_diff(cases, **kwargs)
     else:
         new_cases = np.diff(cases, prepend=0.0)

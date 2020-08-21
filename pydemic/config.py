@@ -1,3 +1,4 @@
+from functools import lru_cache
 from pathlib import Path
 
 import joblib
@@ -19,7 +20,7 @@ def user_path():
     return path
 
 
-@sk.lru_cache(32)
+@lru_cache(32)
 def memory(name) -> joblib.Memory:
     """
     Return the joblib's Memory object with the given name.

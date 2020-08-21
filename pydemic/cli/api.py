@@ -1,7 +1,7 @@
 import click
-from matplotlib import pyplot as plt
-import pandas as pd
 import numpy as np
+import pandas as pd
+from matplotlib import pyplot as plt
 
 
 @click.command()
@@ -53,3 +53,7 @@ def covid19_api_downloader(code, api, output, plot, log, daily, grid):
         df.to_excel(output)
     else:
         raise SystemExit(f"Invalid output file: {output!r}")
+
+
+if __name__ == "__main__":
+    covid19_api_downloader()

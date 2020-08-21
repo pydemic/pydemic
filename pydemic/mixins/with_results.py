@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 import pandas as pd
 
-from pydemic.utils import fmt, pc
+from ..utils import fmt, pc
 from .results import Results
 
 if TYPE_CHECKING:

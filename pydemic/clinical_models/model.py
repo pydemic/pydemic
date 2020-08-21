@@ -1,7 +1,9 @@
 from abc import ABC
 
-import sidekick as sk
+import pandas as pd
+from scipy.integrate import cumtrapz
 
+import sidekick as sk
 from ..models import Model, ODEModel
 from ..utils import param_property, param_alias
 
@@ -18,11 +20,10 @@ class ClinicalModel(Model, ABC):
         plot_columns = ("hospitalized_cases", "hospitalized", "deaths")
 
     # Delegates (population parameters)
+    parent_model = sk.alias("infection_model")
     population = sk.delegate_to("infection_model")
     K = sk.delegate_to("infection_model")
-    disease = sk.delegate_to("infection_model")
-    disease_params = sk.delegate_to("infection_model")
-    region = sk.delegate_to("infection_model")
+    R0 = sk.delegate_to("infection_model")
     age_distribution = sk.delegate_to("infection_model")
     age_pyramid = sk.delegate_to("infection_model")
 
@@ -47,7 +48,7 @@ class ClinicalModel(Model, ABC):
     def __init__(self, infection_model, *args, **kwargs):
         self.infection_model = infection_model
 
-        for k in ("disease", "region"):
+        for k in ("disease", "disease_params", "region"):
             if k not in kwargs:
                 kwargs[k] = getattr(infection_model, k)
 
@@ -204,6 +205,22 @@ class ClinicalModel(Model, ABC):
         """
         return self["critical_cases", idx]
 
+    def get_data_ppe(self, idx):
+        """
+        Requirement of several personal protection equipment estimated from
+        the cumulative sum of patients x day, icu_patients x day.
+        """
+        severe = self["severe"]
+        critical = self["critical"]
+        severe_day = cumtrapz(severe, severe.index, initial=0)
+        critical_day = cumtrapz(critical, critical.index, initial=0)
+        out = self.disease.recommended_ppe(
+            pd.Series(severe_day, index=severe.index), pd.Series(critical_day, index=critical.index)
+        )
+        if idx is None:
+            return out
+        return out[idx]
+
     #
     # Other functions
     #
@@ -230,7 +247,6 @@ class ClinicalObserverModel(ClinicalModel, ABC):
     dates = sk.delegate_to("infection_model")
     iter = sk.delegate_to("infection_model")
     time = sk.delegate_to("infection_model")
-    date = sk.delegate_to("infection_model")
     state = sk.delegate_to("infection_model")
 
     # Methods delegates

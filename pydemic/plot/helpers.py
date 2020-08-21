@@ -1,6 +1,8 @@
 from typing import TYPE_CHECKING
 
 import matplotlib.pyplot as plt
+from matplotlib.axes import Axes
+
 from sidekick import X
 
 if TYPE_CHECKING:
@@ -56,7 +58,7 @@ def mark_x(x, *args, text=None, ax=None, **kwargs):
     ax.set_ylim(y0, y1)
 
 
-def mark_y(y, *args, text=None, ax=None, **kwargs):
+def mark_y(y, *args, text=None, ax=None, text_x=None, **kwargs):
     """
     Create a vertical line in the x position.
 
@@ -73,10 +75,14 @@ def mark_y(y, *args, text=None, ax=None, **kwargs):
     See Also:
         :func:`mark_x`
     """
-    ax = ax or plt.gca()
+    ax: Axes = ax or plt.gca()
     x0, x1 = ax.get_xlim()
     ax.plot([x0, x1], [y, y], *args, **kwargs)
     ax.set_xlim(x0, x1)
+    if text:
+        if text_x is None:
+            text_x = x0 + (x1 - x0) * 0.05
+        ax.text(text_x, y, text)
 
 
 #

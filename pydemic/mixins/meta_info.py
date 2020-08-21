@@ -26,7 +26,7 @@ class Meta:
 
     Attributes:
         params:
-            Information about parameters, subclass of :cls:`ParamsInfo`
+            Information about parameters, subclass of :class:`ParamsInfo`
     """
 
     cls: Type["Model"]

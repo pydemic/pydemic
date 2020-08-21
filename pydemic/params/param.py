@@ -134,7 +134,7 @@ class Params(metaclass=ParamMeta):
 
     def param(self, key) -> Param:
         """
-        Return a :cls:`Param` object describing the given parameter.
+        Return a :class:`Param` object describing the given parameter.
         """
         value = self.value(key)
         ref = self.ref(key)
