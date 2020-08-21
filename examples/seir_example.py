@@ -23,7 +23,7 @@ print(f"IFR (empirical) : {pc(cm.empirical_IFR)}")
 
 # Show plots
 plt.subplot(221)
-m.plot(log=True)
+m.plot(logy=True)
 
 plt.subplot(222)
 cm.plot(["death_rate", "severe"], logy=True)
