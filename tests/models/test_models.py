@@ -8,6 +8,7 @@ from pandas.testing import assert_series_equal
 
 from pydemic.clinical_models import CrudeFR, HospitalizationWithDelay
 from pydemic import models
+from pydemic.models import Model
 
 MODEL_CLASSES = [
     models.eSIR,
@@ -101,12 +102,12 @@ class TestInfectiousModels(ModelTester):
         assert len(series) == 8
         assert (series == R0).all()
 
-    def test_clinical_accessor(self, m):
+    def test_clinical_accessor(self, m: Model):
         h = m.clinical()
         assert h.empirical_CFR < m.exposed
         assert h.empirical_IFR < m.exposed
         assert isinstance(h, CrudeFR)
-        assert type(h) == type(m.clinical.crude_model())
+        assert type(h) == type(m.clinical.overflow_model())
         assert isinstance(m.clinical.delay_model(), HospitalizationWithDelay)
 
     def test_clinical_model_basic_api(self, m):
@@ -114,8 +115,8 @@ class TestInfectiousModels(ModelTester):
         cm = m.clinical()
         c = cm["cases"]
         d = cm["deaths"]
-        h = cm["hospitalized"]
-        H = cm["hospitalized_cases"]
+        h = cm["severe"]
+        H = cm["severe_cases"]
         assert all(h <= H)
         assert all(d <= H)
         assert all(H <= c)

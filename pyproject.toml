@@ -13,6 +13,7 @@ requires = [
   "mundi",
   "mundi-demography",
   "mundi-healthcare",
+  "sidekick~=0.8.2",
   "joblib",
   "click~=7.0",
   "matplotlib~=3.0",

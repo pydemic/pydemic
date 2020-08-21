@@ -89,6 +89,7 @@ class TestInfo:
             "prob_severe",
             "prob_symptoms",
             "rho",
+            "serial_period",
             "severe_delay",
             "severe_period",
             "symptom_delay",
