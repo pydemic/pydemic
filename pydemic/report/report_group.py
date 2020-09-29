@@ -7,6 +7,7 @@ from typing import List, TypeVar, TYPE_CHECKING
 import numpy as np
 import pandas as pd
 
+from . import column_mapping
 from .report_base import Report
 from .report_single import SingleReport
 from .utils import RegionInfo, DefaultKeyDict
@@ -38,6 +39,10 @@ class GroupReport(Sequence, Report):
 
     _reports: List["SingleReport"]
     _region_info: DefaultKeyDict
+    _column_mapping = {
+        "region.sus_macro_id": column_mapping.sus_macro_id,
+        "region.sus_macro_name": column_mapping.sus_macro_name,
+    }
 
     def __init__(self, models, report_cls=SingleReport, **kwargs):
         Report.__init__(self, **kwargs)
@@ -216,11 +221,21 @@ class GroupReport(Sequence, Report):
         if dtype:
             data = data.astype(dtype)
 
-        prefix = pd.DataFrame(
-            [[m.R0, m.region.name, m.region.population] for m in self],
-            index=index,
-            columns=[("info", "R0"), ("info", "region.name"), ("info", "region.population")],
-        )
+        columns = ["R0", "region.name", "region.population", *(info or ())]
+        rows = []
+        for m in self:
+            obj = {
+                "R0": m.R0,
+                "region.name": m.region.name,
+                "region.population": m.region.population,
+            }
+            for extra in info:
+                obj[extra] = self._column_mapping[extra](m)
+            row = [obj[col] for col in columns]
+            rows.append(row)
+
+        columns = [("info", col) for col in columns]
+        prefix = pd.DataFrame(rows, index=index, columns=columns)
         data = pd.concat([prefix, data], axis=1)
         data.columns = pd.MultiIndex.from_tuples(data.columns)
         return data

@@ -32,7 +32,7 @@ def regions(kind, truncate=None, skip=0, parent=None) -> Iterable[Region]:
 
     out = mundi.regions(country_code="BR", **query).index
     if parent is not None:
-        out = filter(is_ancestor(parent), out)
+        out = filter(is_ancestor(parent), map(mundi.region, out))
 
     if skip != 0:
         out = islice(out, skip, None)
@@ -72,7 +72,8 @@ def export(path: str, report: GroupReport, dtype=None, times=None):
     kwargs = {"columns": ["cases", "deaths", "severe", "critical", suspect], "dtype": dtype}
     if times is not None:
         kwargs["times"] = [int(x) for x in times.split(",")]
-    data = report.report_time_columns_data(**kwargs)
+    info = ["region.sus_macro_id", "region.sus_macro_name"]
+    data = report.report_time_columns_data(**kwargs, info=info)
 
     if path is None:
         print(data)
