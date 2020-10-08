@@ -24,3 +24,4 @@ Global_Mobility_Report.csv
 cc-test-reporter
 coverage.xml
 .mypy_cache/
+br-report.*

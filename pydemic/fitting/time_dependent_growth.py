@@ -62,5 +62,5 @@ def naive_holt_smoothing(ys, max_daily_growth=2, **kwargs):
     dirty_ks = np.minimum(np.diff(np.log(deltas), prepend=0), max_factor)
 
     smoothing_level = kwargs.setdefault("smoothing_level", 0.1)
-    holt = sm.tsa.Holt(dirty_ks, damped=True)
+    holt = sm.tsa.Holt(dirty_ks, damped_trend=True)
     return holt.fit(smoothing_level=smoothing_level)

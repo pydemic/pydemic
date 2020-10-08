@@ -177,7 +177,7 @@ class GroupReport(Sequence, Report):
         return out
 
     def report_time_columns_data(
-        self, columns, times=(7, 15, 30, 60), info=None, dtype=None
+        self, columns, times=(7, 15, 30, 60), info=(), dtype=None
     ) -> pd.DataFrame:
         """
         Create a data frame from simulations by extracting all columns in the

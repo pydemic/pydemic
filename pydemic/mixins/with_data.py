@@ -142,6 +142,8 @@ class WithDataModelMixin(WithDataMixin, ABC):
     Mixin for simulation model subclasses with a data attribute.
     """
 
+    clinical: "ClinicalModel"
+
     def initialize(self):
         raise NotImplementedError
 
@@ -150,6 +152,9 @@ class WithDataModelMixin(WithDataMixin, ABC):
         self.initialize()
         return self.__dict__["data"]
 
+    #
+    # Generic population parameters
+    #
     def get_data_population(self, idx):
         """
         Return current population.
@@ -161,3 +166,41 @@ class WithDataModelMixin(WithDataMixin, ABC):
         Shorthand for get_data_population.
         """
         return self.get_data_population(idx)
+
+    #
+    # Clinical parameters
+    #
+    def _get_data_clinical(self, name, idx):
+        model = self.clinical()
+        method = getattr(model, f"get_data_{name}")
+        return method(idx)
+
+    def get_data_deaths(self, idx):
+        return self._get_data_clinical("deaths", idx)
+
+    def get_data_death_rate(self, idx):
+        return self._get_data_clinical("death_rate", idx)
+
+    def get_data_critical(self, idx):
+        return self._get_data_clinical("critical", idx)
+
+    def get_data_critical_cases(self, idx):
+        return self._get_data_clinical("critical_cases", idx)
+
+    def get_data_severe(self, idx):
+        return self._get_data_clinical("severe", idx)
+
+    def get_data_severe_cases(self, idx):
+        return self._get_data_clinical("severe_cases", idx)
+
+    def get_data_icu(self, idx):
+        return self._get_data_clinical("icu", idx)
+
+    def get_data_icu_cases(self, idx):
+        return self._get_data_clinical("icu_cases", idx)
+
+    def get_data_hospitalized(self, idx):
+        return self._get_data_clinical("hospitalized", idx)
+
+    def get_data_hospitalized_cases(self, idx):
+        return self._get_data_clinical("hospitalized_cases", idx)

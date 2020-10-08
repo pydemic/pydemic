@@ -77,10 +77,11 @@ def export(path: str, report: GroupReport, dtype=None, times=None):
 
     if path is None:
         print(data)
-    else:
+        path = input("File path (empty to skip): ")
+    if path:
         data.to_pickle(path + ".pkl")
         data.to_csv(path + ".csv")
-        data.to_excel(path)
+        data.to_excel(path + ".xlsx")
 
 
 def suspect(m, dates):

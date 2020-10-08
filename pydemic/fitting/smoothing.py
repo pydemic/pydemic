@@ -62,7 +62,7 @@ def smoothed_diff(
     # Holt exponential smoothing
     if (values == 0).all():
         return Result(values, None) if retall else values
-    holt = sm.tsa.Holt(values, exponential=not linear, damped=damped)
+    holt = sm.tsa.Holt(values, exponential=not linear, damped_trend=damped)
     res = holt.fit(use_brute=not fast_init, **kwargs)
     out = res.fittedvalues
     out *= maximum_value / out.sum()
