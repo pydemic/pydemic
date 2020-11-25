@@ -3,7 +3,6 @@ from sidekick import placeholder as _
 
 from .model import ClinicalObserverModel
 from .utils import delayed_with_discharge
-from ..params import clinical
 from ..utils import param_property, param_alias, sliced
 
 
@@ -27,8 +26,6 @@ class CrudeFR(ClinicalObserverModel):
         icu_fatality_ratio (float, alias: ICUFR):
             Fraction of deaths for patients that go to ICU treatment.
     """
-
-    params = clinical.DEFAULT
 
     # Primary parameters
     prob_severe: float = param_property(default=0.0)

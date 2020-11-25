@@ -1,6 +1,5 @@
 from .crude_FR import CrudeFR
 from .utils import delayed, delayed_with_discharge
-from ..params import clinical
 from ..utils import param_property, sliced
 
 
@@ -15,8 +14,6 @@ class HospitalizationWithDelay(CrudeFR):
         critical_delay (float):
             Duration between symptom onset to ICU treatment.
     """
-
-    params = clinical.DEFAULT
 
     # Primary parameters
     severe_delay: float = param_property(default=0.0)

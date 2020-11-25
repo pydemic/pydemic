@@ -254,7 +254,6 @@ class ClinicalObserverModel(ClinicalModel, ABC):
     set_data = sk.delegate_to("infection_model")
     set_cases = sk.delegate_to("infection_model")
     run = sk.delegate_to("infection_model")
-    run_until = sk.delegate_to("infection_model")
     trim_dates = sk.delegate_to("infection_model")
     reset = sk.delegate_to("infection_model")
     epidemic_model_name = sk.delegate_to("infection_model")

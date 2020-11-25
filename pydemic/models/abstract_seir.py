@@ -19,7 +19,6 @@ class AbstractSEIR(Base):
         data_aliases = {"E": "exposed", "exposed": None}
 
     # Basic epidemiological parameters
-    params = params.epidemic.DEFAULT
     sigma = param_transform("incubation_period", (1 / X), (1 / X))
     incubation_period = param_property("incubation_period", default=1.0)
 

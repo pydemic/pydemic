@@ -249,7 +249,7 @@ class Epidemiology(ABC):
             return pd.Series([value] * len(index), index=index)
 
 
-class EpidemiologyBase(Epidemiology, ABC):
+class EpidemicBase(Epidemiology, ABC):
     """
     Common implementations for DescriptiveSeries and DescriptiveCurves.
     """
@@ -305,7 +305,7 @@ class EpidemiologyBase(Epidemiology, ABC):
         return new
 
 
-class EpidemiologySeries(EpidemiologyBase):
+class EpidemicSeries(EpidemicBase):
     """
     Descriptive epidemiology based on a single series of cumulative cases.
     """
@@ -333,7 +333,7 @@ class EpidemiologySeries(EpidemiologyBase):
         return self._data
 
 
-class EpidemiologyCurves(EpidemiologyBase):
+class EpidemicCurves(EpidemicBase):
     """
     Descriptive epidemiology based on a dataframe of cumulative cases/deaths.
 
@@ -345,7 +345,7 @@ class EpidemiologyCurves(EpidemiologyBase):
     """
 
     __slots__ = ("_data", "_population", "_cases", "_deaths")
-    component_constructor = EpidemiologySeries
+    component_constructor = EpidemicSeries
 
     @classmethod
     def from_region(cls, region, params=None, **kwargs):

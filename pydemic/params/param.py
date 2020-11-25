@@ -1,20 +1,25 @@
 from numbers import Number, Real
 from types import SimpleNamespace
-from typing import NamedTuple, Optional, Callable, Union, Any
+from typing import Optional, Callable, Union, Any
 
-import sidekick as sk
+import sidekick.api as sk
 
 ParamLike = Any
 NOT_GIVEN = object()
 
 
-class Param(NamedTuple):
+class Param(sk.Record):
     """
-    Represents a parameter
+    Represents a parameter.
     """
 
+    #: Value for the parameter or callable that generates the value
     data: Number
+
+    #: Reference in the literature from where the parameter was extracted
     ref: Optional[str] = None
+
+    #: Probability density function that generates random values for the parameter.
     pdf: Optional[Union[Callable, str]] = None
 
     @property

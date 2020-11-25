@@ -1,3 +1,5 @@
+from pprint import pprint
+
 import pandas as pd
 import pytest
 from pandas.testing import assert_frame_equal
@@ -20,6 +22,13 @@ class TestCovid19:
 
         table = covid19.hospitalization_table
         assert_frame_equal(table(), table("verity"))
+
+    def test_disease_params_aliases(self):
+        params = covid19.params()
+        print(covid19.case_fatality_ratio())
+        assert "case_fatality_ratio" in params
+        assert "CFR" in params
+        assert params["CFR"] == params["case_fatality_ratio"]
 
     def test_covid_dict_params(self):
         data = covid19.to_dict()
@@ -50,7 +59,9 @@ class TestCovid19:
         }
         for k, v in res.items():
             assert data[k] == approx(v, rel=0.01, abs=1e-3), k
-        assert set(res.keys()) == set(data.keys())
+        diff = set(res) - data.keys()
+        assert not diff
+        pprint(data)
         assert data == covid19.to_json()
 
     def _test_params(self):

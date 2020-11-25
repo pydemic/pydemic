@@ -45,9 +45,7 @@ class PydemicSeriesAccessor(PydemicAccessorCommon):
 
 @pd.api.extensions.register_dataframe_accessor("pydemic")
 class PydemicDataFrameAccessor(PydemicAccessorCommon):
-    """
-
-    """
+    """"""
 
     __slots__ = ()
 

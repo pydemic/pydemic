@@ -494,17 +494,6 @@ class Model(
         """
         raise NotImplementedError
 
-    def run_until(self, condition: Callable[["Model"], bool]):
-        """
-        Run until stop condition is satisfied.
-
-        Args:
-            condition:
-                A function that receives a model and return True if stop
-                criteria is satisfied.
-        """
-        raise NotImplementedError
-
     #
     # Utility methods
     #

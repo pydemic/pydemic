@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from numpy.testing import assert_array_almost_equal
 
-from pydemic.empirical import EpidemicCurve
+from pydemic.empirical import EpidemicCurves
 
 
 class TestEpidemicCurve:
@@ -16,7 +16,7 @@ class TestEpidemicCurve:
         cases = np.arange(1, duration) * 10
         df = pd.DataFrame([cases, deaths], index=["cases", "deaths"], columns=dates).T
         params = {"population": 1_000_000, "case_fatality_ratio": 0.01, "infectious_period": 10.5}
-        return EpidemicCurve(df, params)
+        return EpidemicCurves(df, params)
 
     def exponentially_increasing(self, k=0.1):
         """
@@ -27,12 +27,11 @@ class TestEpidemicCurve:
         cases = np.exp(k * np.arange(1, 31)) * 10
         df = pd.DataFrame([cases, deaths], index=["cases", "deaths"], columns=dates).T
         params = {"population": 1_000_000, "case_fatality_ratio": 0.01, "infectious_period": 10.5}
-        return EpidemicCurve(df, params)
+        return EpidemicCurves(df, params)
 
     def test_epidemic_curves_on_linearly_increasing_data(self):
         data = self.linearly_increasing()
         assert_all_eq(data.new_cases(), 10)
-        assert_all_eq(data.ascertaiment_rate(), 1.0)
 
         for p in [7, 14, 21]:
             incidence = data.incidence_rate(p)

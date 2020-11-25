@@ -39,7 +39,7 @@ class Disease(ABC):
     full_name: str = ""
     path: str = sk.lazy(lambda _: "diseases/" + _.name.lower().replace(" ", "-"))
     abspath: Path = sk.lazy(lambda _: db.DATABASES / _.path)
-    _default_params = sk.lazy(lambda _: DiseaseParams(_))
+    _default_params = sk.lazy(lambda _: DiseaseParams(_, extra=_.parameters))
 
     # Constants
     MORTALITY_TABLE_DEFAULT = "default"
@@ -50,6 +50,30 @@ class Disease(ABC):
     HOSPITALIZATION_TABLE_DESCRIPTIONS = {}
     PARAMS_BLACKLIST = frozenset(
         {"to_json", "to_record", "to_dict", "params", "epidemic_curve", "recommended_ppe"}
+    )
+    parameters = (
+        "R0",
+        "rho",
+        "case_fatality_ratio",
+        "infection_fatality_ratio",
+        "hospital_fatality_ratio",
+        "icu_fatality_ratio",
+        "infectious_period",
+        "incubation_period",
+        "hospitalization_period",
+        "icu_period",
+        "hospitalization_overflow_bias",
+        "severe_delay",
+        "severe_period",
+        "critical_delay",
+        "critical_period",
+        "prob_symptoms",
+        "prob_severe",
+        "prob_critical",
+        "prob_aggravate_to_icu",
+        "death_delay",
+        "symptom_delay",
+        "serial_period",
     )
 
     def __init__(self, name=None, description=None, full_name=None, path=None):
@@ -518,7 +542,7 @@ methods."""
         """
         if not args and not kwargs:
             return self._default_params
-        return DiseaseParams(self, *args, **kwargs)
+        return DiseaseParams(self, args=args, kwargs=kwargs, extra=self.parameters)
 
     def to_record(self, **kwargs) -> sk.record:
         """
@@ -530,26 +554,6 @@ methods."""
         """
         Return a dict with all epidemiological parameters.
         """
-
-        methods = (
-            "R0",
-            "rho",
-            "case_fatality_ratio",
-            "infection_fatality_ratio",
-            "hospital_fatality_ratio",
-            "icu_fatality_ratio",
-            "infectious_period",
-            "incubation_period",
-            "hospitalization_period",
-            "icu_period",
-            "hospitalization_overflow_bias",
-            "severe_period",
-            "critical_period",
-            "prob_symptoms",
-            "prob_severe",
-            "prob_critical",
-        )
-
         aliases = (
             ("Qsv", "prob_severe"),
             ("Qcr", "prob_critical"),
@@ -566,7 +570,7 @@ methods."""
         )
 
         out = {}
-        for method in methods:
+        for method in self.parameters:
             try:
                 out[method] = getattr(self, method)(**kwargs)
             except Exception as e:

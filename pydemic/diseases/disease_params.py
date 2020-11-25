@@ -1,10 +1,10 @@
 import sidekick as sk
 from sidekick import placeholder as _
 
-from pydemic.params import WrappedParams
+from ..params.params import Proxy
 
 
-class DiseaseParams(WrappedParams):
+class DiseaseParams(Proxy):
     """
     A wrapper for disease params.
     """

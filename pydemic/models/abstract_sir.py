@@ -61,9 +61,6 @@ class AbstractSIR(Model, ABC):
     #
     # Model API
     #
-    def _initial_state(self):
-        return np.array((self.population - 1, 1, 0), dtype=float)
-
     def extrapolate_cases(self, which="infectious"):
         """
         Extrapolates how many cumulative cases where necessary to form the
@@ -71,6 +68,9 @@ class AbstractSIR(Model, ABC):
         """
         I = self[which]
         return I.iloc[0] * (self.beta + 1e-50) / max(self.K, 0.1)
+
+    def _initial_state(self):
+        return np.array((self.population - 1, 1, 0), dtype=float)
 
     def _initial_infected(self):
         return self.extrapolate_cases()
