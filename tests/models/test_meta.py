@@ -1,5 +1,5 @@
 from pydemic.models import SIR
-from pydemic.models.abstract_sir import AbstractSIR
+from pydemic.models.abstract import AbstractSIR
 
 
 class TestMetaClass:

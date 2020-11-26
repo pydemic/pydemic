@@ -125,9 +125,6 @@ class Model(
             else:
                 raise TypeError(f"invalid arguments: {k}")
 
-        if run is not None:
-            self.run(run)
-
     def __str__(self):
         return self.name
 
@@ -482,17 +479,14 @@ class Model(
         self.run_to_fill(data, ts)
         extra = pd.DataFrame(data, columns=self.data.columns, index=ts)
 
+        print(extra)
+        raise
+
         self.data = pd.concat([self.data, extra])
         self.date = date + time * DAY
         self.time = ts[-1]
         self.state = data[-1]
         return self
-
-    def run_to_fill(self: T, data, times) -> T:
-        """
-        Run simulation to fill pre-allocated array of data.
-        """
-        raise NotImplementedError
 
     #
     # Utility methods

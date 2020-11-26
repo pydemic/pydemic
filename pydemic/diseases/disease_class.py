@@ -39,7 +39,7 @@ class Disease(ABC):
     full_name: str = ""
     path: str = sk.lazy(lambda _: "diseases/" + _.name.lower().replace(" ", "-"))
     abspath: Path = sk.lazy(lambda _: db.DATABASES / _.path)
-    _default_params = sk.lazy(lambda _: DiseaseParams(_, extra=_.parameters))
+    _default_params = sk.lazy(lambda _: DiseaseParams(_, fields=_.parameters))
 
     # Constants
     MORTALITY_TABLE_DEFAULT = "default"
@@ -290,7 +290,7 @@ class Disease(ABC):
         """
         R0 for disease.
         """
-        return NotImplemented
+        raise NotImplementedError
 
     def rho(self, **kwargs):
         """
@@ -374,13 +374,13 @@ methods."""
         """
         Period in which cases are infectious.
         """
-        return NotImplemented
+        raise NotImplementedError
 
     def incubation_period(self, **kwargs) -> QualValueT:
         """
         Period between infection and symptoms onset.
         """
-        return NotImplemented
+        raise NotImplementedError
 
     def serial_period(self, **kwargs):
         return self.infectious_period(**kwargs) + self.incubation_period(**kwargs)
@@ -442,13 +442,13 @@ methods."""
         """
         Average duration between symptom onset and necessity of ICU admission.
         """
-        return NotImplemented
+        raise NotImplementedError
 
     def severe_delay(self, **kwargs) -> QualValueT:
         """
         Average duration between symptom onset and necessity of hospital admission.
         """
-        return NotImplemented
+        raise NotImplementedError
 
     def death_delay(self, **kwargs):
         """
@@ -542,7 +542,7 @@ methods."""
         """
         if not args and not kwargs:
             return self._default_params
-        return DiseaseParams(self, args=args, kwargs=kwargs, extra=self.parameters)
+        return DiseaseParams(self, args=args, kwargs=kwargs, fields=self.parameters)
 
     def to_record(self, **kwargs) -> sk.record:
         """

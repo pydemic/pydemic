@@ -13,5 +13,4 @@ class ModelMeta(ABCMeta):
     def __init__(cls, name, bases, ns):
         meta = ns.pop("Meta", None)
         super().__init__(name, bases, ns)
-
         cls.meta = Meta.from_arguments(cls, meta)

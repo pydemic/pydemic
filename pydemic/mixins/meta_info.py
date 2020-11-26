@@ -12,6 +12,7 @@ from typing import (
 
 from .params_info import ParamsInfo
 from .. import utils
+from ..solver import Solver
 
 if TYPE_CHECKING:
     from ..models import Model  # noqa: F401
@@ -35,6 +36,7 @@ class Meta:
     variables: Tuple[str]
     data_aliases: Dict[str, str]
     plot_columns: FrozenSet[str]
+    solver_model: Type[Solver]
     ndim: int
 
     @classmethod
@@ -63,14 +65,15 @@ class Meta:
         # Keyword variables
         keywords = explicit_keywords(cls, self=True)
         self.model_name = keywords.get("model_name", "Model")
+        self.solver_model = keywords.get("solver_model", Solver)
 
         # Plot columns
-        new = kwargs.pop("plot_columns", (...,))
+        new = kwargs.get("plot_columns", (...,))
         bases = get_base_meta_attr(cls, "plot_columns", ())
         self.plot_columns = frozenset(merge_with_ellipsis(new, bases))
 
         # Check keyword args
-        invalid = set(kwargs) - {"model_name", "plot_columns"}
+        invalid = set(kwargs) - {"model_name", "plot_columns", "solver_model"}
         if invalid:
             raise TypeError(f"invalid arguments: {invalid}")
 

@@ -1,10 +1,10 @@
 from abc import ABC
 
 import pandas as pd
+import sidekick as sk
 from scipy.integrate import cumtrapz
 
-import sidekick as sk
-from ..models import Model, ODEModel
+from ..models import Model
 from ..utils import param_property, param_alias
 
 
@@ -265,12 +265,3 @@ class ClinicalObserverModel(ClinicalModel, ABC):
 
     def _initial_state(self):
         return ()
-
-    def run_to_fill(self, data, times):
-        raise RuntimeError
-
-
-class ClinicalODEModel(ClinicalModel, ODEModel, ABC):
-    """
-    Base class for clinical models based on ordinary differential equations.
-    """

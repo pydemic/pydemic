@@ -3,12 +3,12 @@ Implement interfaces for classes that expose lists of parameters.
 """
 from abc import ABC
 from numbers import Number
-from typing import Union
+from typing import Union, TYPE_CHECKING
 
 import pandas as pd
-
 import sidekick as sk
 from sidekick import placeholder as _
+
 from .params_info import ParamsInfo
 from ..logging import log
 from ..params import Param, param, get_param
@@ -16,6 +16,8 @@ from ..types import ImproperlyConfigured
 from ..utils import extract_keys
 
 param_ = param
+if TYPE_CHECKING:
+    from ..models import Model
 
 
 class WithParamsMixin(ABC):
@@ -34,7 +36,7 @@ class WithParamsMixin(ABC):
     __primary_params: frozenset = sk.lazy(_.meta.params.primary)
     __alternative_params: frozenset = sk.lazy(_.meta.params.alternative)
 
-    def __init__(self, params=None, keywords=None):
+    def __init__(self: "Model", params=None, keywords=None):
         self._params = {}
         if params is not None:
             self.set_params(params)

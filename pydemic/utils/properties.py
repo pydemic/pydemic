@@ -63,6 +63,9 @@ class param_property(property):
         param = self
 
         def fget(self):
+            from pprint import pprint
+
+            pprint(self._params)
             try:
                 return self._params[param.name].value
             except KeyError:
@@ -90,7 +93,8 @@ class param_transform(property):
     is_param = True
     is_derived = True
 
-    def __init__(self, prop_name, read, write=None):
+    def __init__(self, varname, read, write=None):
+        self.name = None
         read = sk.to_callable(read)
 
         if write is not None:
@@ -98,22 +102,26 @@ class param_transform(property):
 
         def fget(self):
             try:
-                value = self._params[prop_name].value
+                value = self._params[varname].value
             except KeyError:
-                value = self.get_param(prop_name)
+                value = self.get_param(varname)
             try:
                 return read(value)
             except Exception as e:
                 cls = type(e).__name__
-                msg = f"error found when processing {prop_name!r}: {cls}{e}"
+                msg = f"error in {self.name!r} when processing {varname!r}: {cls} {e}"
                 raise ValueError(msg)
 
         def fset(self, value):
             value = write(value)
-            self.set_param(prop_name, value)
+            self.set_param(varname, value)
 
         args = (fget, fset) if write else (fget,)
         super().__init__(*args)
+
+    def __set_name__(self, owner, name):
+        if self.name is None:
+            self.name = name
 
 
 def param_alias(prop, ro=False):

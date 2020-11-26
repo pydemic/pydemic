@@ -5,7 +5,7 @@ from .disease_class import Disease
 from .disease_params import DiseaseParams
 
 covid19 = Covid19("Covid-19")
-DISEASE_MAP = {"covid-19": covid19, "disease": Disease("empty")}
+DISEASE_MAP = {"covid-19": covid19}
 DEFAULT = covid19
 
 
