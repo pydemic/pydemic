@@ -24,10 +24,10 @@ class Solver(ABC):
     """
 
     __slots__ = ("_static_params", "_dynamic_params")
-    param_names: FrozenSet[str]
-    variables: Tuple[str, ...]
-    shape: Tuple[int, ...]
-    defaults: Mapping[str, Numeric]
+    param_names: FrozenSet[str] = frozenset()
+    variables: Tuple[str, ...] = ()
+    shape: Tuple[int, ...] = ()
+    defaults: Mapping[str, Numeric] = MappingProxyType({})
     ndim = property(lambda self: len(self.shape))
 
     def __init_subclass__(cls, variables=(), shape=None, defaults=None, params=()):
@@ -59,11 +59,6 @@ class Solver(ABC):
         cls.param_names = frozenset({*params, *cls.defaults})
 
     def __init__(self, params=None, **kwargs):
-        cls = type(self)
-        if ABC in cls.__bases__:
-            m = cls.__name__
-            raise RuntimeError(f"cannot create instances of abstract model: {m}")
-
         invalid = set(kwargs).difference(self.param_names)
         if invalid:
             raise TypeError(f"invalid arguments: {invalid}")

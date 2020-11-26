@@ -65,7 +65,6 @@ class param_property(property):
         def fget(self):
             from pprint import pprint
 
-            pprint(self._params)
             try:
                 return self._params[param.name].value
             except KeyError:

@@ -2,7 +2,7 @@ import datetime
 import warnings
 from copy import copy
 from types import MappingProxyType
-from typing import Sequence, Callable, Mapping, Union, TypeVar, TYPE_CHECKING
+from typing import Sequence, Mapping, Union, TypeVar, TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
@@ -23,7 +23,9 @@ from ..mixins import (
     WithRegionDemography,
 )
 from ..packages import plt
+from ..params.params import ParamsFromNamespace
 from ..utils import today, not_implemented, extract_keys, param_property
+from ..solver import Solver
 
 T = TypeVar("T")
 NOW = datetime.datetime.now()
@@ -91,6 +93,9 @@ class Model(
             raise RuntimeError(msg)
         return UIProperty(self)
 
+    # Private members
+    _solver: Solver
+
     def __init__(
         self, params=None, *, run=None, name=None, date=None, clinical=None, disease=None, **kwargs
     ):
@@ -124,6 +129,13 @@ class Model(
                     raise AttributeError(msg)
             else:
                 raise TypeError(f"invalid arguments: {k}")
+
+        solver = self.meta.solver_model
+        params = ParamsFromNamespace(self, solver.param_names)
+        self._solver = solver(params)
+
+        if run is not None:
+            self.run(run)
 
     def __str__(self):
         return self.name
@@ -456,36 +468,23 @@ class Model(
     #
     # Running simulation
     #
-    def run(self: T, time) -> T:
+    def run(self: T, steps, dt=1.0) -> T:
         """
         Runs the model for the given duration.
         """
-        steps = int(time)
         self.initialize()
-
-        if time == 0:
+        if steps == 0:
             return
-
-        _, *shape = self.data.shape
-
-        ts = self.time + 1.0 + np.arange(steps)
-
-        data = np.zeros((steps, *shape))
-        date = self.date
 
         if self.info.get("event.simulation_start") is None:
             self.info.save_event("simulation_start")
 
-        self.run_to_fill(data, ts)
-        extra = pd.DataFrame(data, columns=self.data.columns, index=ts)
+        result = self._solver.run(self.state, steps, dt=dt, t0=self.time)
 
-        print(extra)
-        raise
-
-        self.data = pd.concat([self.data, extra])
-        self.date = date + time * DAY
-        self.time = ts[-1]
-        self.state = data[-1]
+        self.data = pd.concat([self.data, result.iloc[1:]])
+        self.date = self.date + steps * DAY
+        self.time = result.index[-1]
+        self.state = np.array(result.iloc[-1])
         return self
 
     #

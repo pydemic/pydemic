@@ -61,7 +61,6 @@ class TestCovid19:
             assert data[k] == approx(v, rel=0.01, abs=1e-3), k
         diff = set(res) - data.keys()
         assert not diff
-        pprint(data)
         assert data == covid19.to_json()
 
     def _test_params(self):

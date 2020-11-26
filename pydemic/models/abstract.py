@@ -11,10 +11,8 @@ from sidekick import placeholder as _
 from .model import Model
 from ..formulas import K, R0_from_K
 from ..packages import np, sk, integrate, pd
-from ..solver import Solver
 from ..utils import param_property, state_property, inverse_transform
 from ..utils import param_transform
-from ..params.params import ParamsFromNamespace
 
 Param = Any
 T = TypeVar("T")
@@ -22,43 +20,7 @@ NOT_GIVEN = object()
 DAY = datetime.timedelta(days=1)
 
 
-class AbstractModel(Model, ABC):
-    """
-    Class in the refactor strategy to separate ODE solvers from models.
-    """
-
-    _solver: Solver
-
-    def __init__(self, *args, run=None, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        solver = self.meta.solver_model
-        params = ParamsFromNamespace(self, solver.param_names)
-        self._solver = solver(params)
-        if run is not None:
-            self.run(run)
-
-    def run(self: T, steps, dt=1.0) -> T:
-        """
-        Runs the model for the given duration.
-        """
-        self.initialize()
-        if steps == 0:
-            return
-
-        if self.info.get("event.simulation_start") is None:
-            self.info.save_event("simulation_start")
-
-        result = self._solver.run(self.state, steps, dt=dt, t0=self.time)
-
-        self.data = pd.concat([self.data, result.iloc[1:]])
-        self.date = self.date + steps * DAY
-        self.time = result.index[-1]
-        self.state = np.array(result.iloc[-1])
-        return self
-
-
-class AbstractSIR(AbstractModel, ABC):
+class AbstractSIR(Model, ABC):
     """
     Abstract base class for all SIR-based models.
     """

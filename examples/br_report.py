@@ -68,12 +68,15 @@ def report(regions, R0_range=(0.5, 1.5), run=60, raises=False):
 
 
 @sk.curry(2)
-def export(path: str, report: GroupReport, dtype=None, times=None):
+def export(path: str, report: GroupReport, dtype=None, times=None, rows=False):
     kwargs = {"columns": ["cases", "deaths", "severe", "critical", suspect], "dtype": dtype}
     if times is not None:
         kwargs["times"] = [int(x) for x in times.split(",")]
     info = ["region.sus_macro_id", "region.sus_macro_name"]
-    data = report.report_time_columns_data(**kwargs, info=info)
+    if rows:
+        data = report.report_time_rows_data(**kwargs)
+    else:
+        data = report.report_time_columns_data(**kwargs, info=info)
 
     if path is None:
         print(data)
@@ -98,13 +101,14 @@ def suspect(m, dates):
 @click.option("--skip", "-s", type=int, default=0, help="Skip that many models.")
 @click.option("--parent", "-p", help="Parent element.")
 @click.option("--strict", is_flag=True, help="Parent element.")
-def main(kind, debug, out, float, truncate, skip, parent, times, strict):
+@click.option("--rows", is_flag=True, help="Export times as rows.")
+def main(kind, debug, out, float, truncate, skip, parent, times, strict, rows):
     dtype = None if float else int
     try:
         sk.pipe(
             regions(kind, truncate=truncate, skip=skip, parent=parent),
             report,
-            export(out, dtype=dtype, times=times),
+            export(out, dtype=dtype, times=times, rows=rows),
         )
     except (ValueError, SystemExit) as ex:
         if debug:

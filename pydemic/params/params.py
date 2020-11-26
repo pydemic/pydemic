@@ -160,7 +160,6 @@ class Proxy(Params):
         fn = get_attr_or_item(self._wrapped, key)
         value = fn(*self._args, **self._kwargs) if callable(fn) else fn
         self._data[key] = value
-        print(self._wrapped, key, value, fn)
         return value
 
 
