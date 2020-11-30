@@ -75,6 +75,9 @@ class Params(Mapping):
         """
         return type(self)(self, **kwargs)
 
+    def transforms(self):
+        ...
+
 
 class ParamsFromNamespace(Params):
     """

@@ -1,40 +1,13 @@
 from numbers import Number, Real
 from types import SimpleNamespace
-from typing import Optional, Callable, Union, Any
+from typing import Optional
 
 import sidekick.api as sk
 
-ParamLike = Any
+from pydemic.types.numeric import ParamLike
+from ..types import Param
+
 NOT_GIVEN = object()
-
-
-class Param(sk.Record):
-    """
-    Represents a parameter.
-    """
-
-    #: Value for the parameter or callable that generates the value
-    data: Number
-
-    #: Reference in the literature from where the parameter was extracted
-    ref: Optional[str] = None
-
-    #: Probability density function that generates random values for the parameter.
-    pdf: Optional[Union[Callable, str]] = None
-
-    @property
-    def value(self):
-        v = self.data
-        return v() if callable(v) else v
-
-    def __str__(self):
-        suffix = []
-        if self.ref:
-            suffix.append(str(self.ref))
-        if self.pdf and not isinstance(self.pdf, SimpleNamespace):
-            suffix.append(str(self.pdf))
-        suffix = ", ".join(suffix)
-        return f"{self.value} ({suffix})" if suffix else str(self.value)
 
 
 class ParamMeta(type):
@@ -156,19 +129,6 @@ class Params(metaclass=ParamMeta):
 
 # Return a function always return the same value
 cte = lambda v: lambda: v
-
-
-def param(value: ParamLike, ref=None, pdf=None) -> Param:
-    """
-    Declares a parameter with optional reference attribution and RVS
-    attribution.
-    """
-    if isinstance(value, Param):
-        ref = ref or value.ref
-        pdf = pdf or value.pdf
-        value = value.value
-
-    return Param(value, ref, pdf)
 
 
 def get_param(name: str, params: ParamLike, default: Real = None) -> Real:
