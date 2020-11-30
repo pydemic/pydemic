@@ -1,51 +1,16 @@
 from collections import MutableMapping, ChainMap
+from functools import partial
 from operator import itemgetter
 from typing import Sequence, Mapping
 
 import sidekick.api as sk
 
-from ..expr_compiler import compile_expr
-
-
-def inverse(attr):
-    """
-    Declare field as an inverse transform of another field.
-    """
-    fn = eval(f"lambda {attr}: 1 / {attr}")
-    fn._func_inverse_ = lambda x: 1 / x
-    return fn
-
-
-def transform(fn, inv=None, args=None):
-    """
-    Declare field as an inverse transform of another field.
-    """
-    if isinstance(fn, str):
-        fn = compile_expr(fn)
-    if isinstance(inv, str):
-        inv = compile_expr(inv)
-
-    if inv is not None:
-        fn._func_inverse_ = inv
-    if args is not None:
-        fn.argnames = args
-    return fn
-
-
-def alias(attr):
-    """
-    Declare field as an alias of another field.
-    """
-    fn = eval(f"lambda {attr}: {attr}")
-    fn._func_inverse_ = lambda x: x
-    return fn
-
-
-def _initial_values(cls):
-    initial = {}
-    for b in reversed(cls.__bases__):
-        initial.update(getattr(b, "_initial", None) or ())
-    return initial
+from .computed_dict_utils import (
+    initial_values,
+    get_computed_key_declarations,
+    get_argnames,
+    partial_args,
+)
 
 
 class MissingDict(dict):
@@ -84,9 +49,9 @@ class ComputedDict(MutableMapping):
 
     def __init_subclass__(cls):
         super().__init_subclass__()
-        hints = getattr(cls, "__annotations__", None)
-        if hints is not None:
-            cls._initial = _initial_values(cls)
+        hints = get_computed_key_declarations(cls)
+        if hints:
+            cls._initial = initial_values(cls)
             cls._initial.update({k: getattr(cls, k, None) for k in hints})
             for k in hints:
                 setattr(cls, k, property(itemgetter(k)))
@@ -262,7 +227,7 @@ class ComputedDict(MutableMapping):
 
     def keys(self, dependent=False):
         """
-        Iterator over keys.
+        Iterator over keys. If dependent=True, also includes computed keys.
         """
         yield from self
         if dependent:
@@ -286,6 +251,20 @@ class ComputedDict(MutableMapping):
         new._independent = self._independent.copy()
         if kwargs:
             new.update(kwargs)
+        return new
+
+    def partial(self, *args, **kwargs):
+        """
+        Create another computed dict that partially apply arguments to all
+        computed keys in the dictionary.
+        """
+        new = self.copy()
+        dependent = {}
+        for k, (argnames, fn) in new._dependent.items():
+            kwargs_ = {k: v for k, v in kwargs.items() if k in argnames}
+            args_ = partial_args(argnames, args, kwargs_)
+            fn_ = partial(fn, *args, **kwargs_)
+            dependent[k] = args_, fn_
         return new
 
 
@@ -320,42 +299,52 @@ class DelayedArgsComputedDict(ComputedDict):
             return True
 
 
-class ProxyDict(Mapping):
+class ProxyDict(MutableMapping):
     """
     Wraps an object into a dict and associate keys to method calls.
     """
 
     def __init__(self, obj, args=(), kwargs=None, fields=()):
+        self._data = {}
         self._wrapped = obj
         self._args = tuple(args)
         self._kwargs = dict(kwargs or {})
         self._fields = set(fields)
 
     def __iter__(self):
-        yield from self._fields
+        fields = self._fields
+        yield from fields
+        for k in self._data:
+            if k not in fields:
+                yield k
 
     def __getitem__(self, key):
-        if key in self._fields:
-            fn = getattr(self._wrapped, key)
-            return fn(*self._args, **self._kwargs)
-        raise KeyError(key)
+        try:
+            return self._data[key]
+        except KeyError:
+            if key in self._fields:
+                fn = getattr(self._wrapped, key)
+                value = self._data[key] = fn(*self._args, **self._kwargs)
+                return value
+            raise
+
+    def __setitem__(self, key, value):
+        self._data[key] = value
+
+    def __delitem__(self, key):
+        del self._data[key]
+        self._fields.discard(key)
 
     def __len__(self):
-        return len(self._fields)
+        return len(self._fields.union(self._data))
 
 
 class ComputedProxyDict(ComputedDict):
+    """
+    A computed dict subclass that falls back to a ProxyDict wrapping an
+    object for missing keys. ProxyDict keys are treated as independent keys.
+    """
+
     def __init__(self, obj, args=(), kwargs=None, fields=()):
-        proxy = ProxyDict(obj, args, kwargs, fields)
         super().__init__()
-        self._independent = ChainMap(self._independent, proxy)
-
-
-#
-# Utility functions
-#
-def get_argnames(fn):
-    try:
-        return fn.argnames
-    except AttributeError:
-        return sk.signature(fn).argnames()
+        self._independent = ProxyDict(obj, args, kwargs, fields)
