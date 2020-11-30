@@ -21,7 +21,7 @@ from .utils import (
 )
 from .. import db
 from ..config import set_cache_options
-from ..types import ImproperlyConfigured
+from ..exceptions import ImproperlyConfigured
 from ..utils import to_json
 
 # Types

@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from pydemic.types import ValueStd
+from ..types import ValueStd
 from . import helpers
 from .. import fitting as fit
 from ..diseases import disease as get_disease
@@ -46,7 +46,7 @@ def cases_and_deaths(
     # Smoothed data
     col_names = {cases: _("Cases"), deaths: _("Deaths")}
     if smooth:
-        from pydemic import fitting as fit
+        from . import fitting as fit
 
         smooth = pd.DataFrame(
             {

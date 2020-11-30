@@ -10,14 +10,7 @@ from pydemic.clinical_models import CrudeFR, HospitalizationWithDelay
 from pydemic import models
 from pydemic.models import Model
 
-MODEL_CLASSES = [
-    models.eSIR,
-    # models.eSEIR,
-    # models.eSEAIR,
-    models.SIR,
-    models.SEIR,
-    models.SEAIR,
-]
+MODEL_CLASSES = [models.eSIR, models.SIR, models.SEIR, models.SEAIR]
 
 
 @pytest.fixture(params=MODEL_CLASSES, scope="session")

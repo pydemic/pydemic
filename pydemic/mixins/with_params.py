@@ -3,17 +3,12 @@ Implement interfaces for classes that expose lists of parameters.
 """
 from abc import ABC
 from numbers import Number
-from typing import Union, TYPE_CHECKING
+from typing import Union, TYPE_CHECKING, Mapping
 
 import pandas as pd
-import sidekick as sk
-from sidekick import placeholder as _
 
-from .params_info import ParamsInfo
 from ..logging import log
-from ..params import Param, param, get_param
-from ..types import ImproperlyConfigured
-from ..utils import extract_keys
+from ..types import Param, param
 
 param_ = param
 if TYPE_CHECKING:
@@ -26,31 +21,24 @@ class WithParamsMixin(ABC):
     """
 
     name: str
-    params: ParamsInfo
+    params: Mapping
     params_data: pd.DataFrame
     disease_params: object
-    _params: dict
-
-    # Cache information in the params_info object as instance attributes.
-    __all_params: frozenset = sk.lazy(_.meta.params.all)
-    __primary_params: frozenset = sk.lazy(_.meta.params.primary)
-    __alternative_params: frozenset = sk.lazy(_.meta.params.alternative)
 
     def __init__(self: "Model", params=None, keywords=None):
-        self._params = {}
-        if params is not None:
-            self.set_params(params)
+        self._params = self.meta.params.copy()
+        params = params or {}
 
-        extra = self.__all_params.intersection(keywords)
-        if extra:
-            self.set_params(extract_keys(extra, keywords))
-
-        for key in self.__primary_params - self._params.keys():
-            self.set_param(key, init_param(key, self, self.disease_params))
-
-        s1 = frozenset(self._params)
-        s2 = self.__primary_params
-        assert s1 == s2, f"Different param set: {s1} != {s2}"
+        for key, value in self.meta.params.items():
+            if key in params:
+                value = params[key]
+            elif key in keywords:
+                value = keywords.pop(key)
+            elif key in self.disease_params:
+                value = self.disease_params[key]
+            else:
+                continue
+            self._params[key] = param(value)
 
     #
     # Parameters
@@ -59,92 +47,43 @@ class WithParamsMixin(ABC):
         """
         Set a collection of params.
         """
-
-        for k, v in kwargs:
+        for k, v in kwargs.items():
             self.set_param(k, v)
-
-        if params:
-            NOT_GIVEN = object()
-            for p in self.__primary_params:
-                if p not in kwargs:
-                    value = get_param(p, params, default=NOT_GIVEN)
-                    if value is not NOT_GIVEN:
-                        self._params[p] = param_(value)
+        for k, v in params.items():
+            if k not in kwargs:
+                self.set_param(k, v)
+        return self
 
     def set_param(self, name, value, *, pdf=None, ref=None):
         """
         Sets a parameter in the model, possibly assigning a distribution and
         reference.
         """
-        if name in self.__primary_params:
-            cls = type(self).__name__
-            log.debug(f"{cls}.{name} = {value!r} ({self.name})")
+        if name not in self._params:
+            raise ValueError(f"invalid parameter: {name}")
+        cls = type(self).__name__
+        log.debug(f"{cls}.{name} = {value!r} ({self.name})")
 
-            self._params[name] = param(value, pdf=pdf, ref=ref)
-        elif name in self.__all_params:
-            setattr(self, name, param(value).value)
-        else:
-            raise ValueError(f"{name} is an invalid param name")
-
+        self._params[name] = param(value, pdf=pdf, ref=ref)
         return self
 
-    def get_param(self, name, param=False) -> Union[Number, Param]:
+    def get_param(self, name, full=False) -> Union[Number, Param]:
         """
         Return the parameter with given name.
 
         Args:
             name:
                 Parameter name.
-            param:
+            full:
                 If True, return a :class:`Param` instance instead of a value.
         """
-        if param:
+        if full:
             try:
                 return self._params[name]
             except KeyError:
                 return param_(self.get_param(name))
         try:
-            return self._params[name].value
+            value = self._params[name]
+            return getattr(value, "value", value)
         except KeyError:
-            pass
-        if name in self.__all_params:
-            return getattr(self, name)
-        else:
             raise ValueError(f"invalid parameter name: {name!r}")
-
-
-class WithDynamicParamsMixin(WithParamsMixin, ABC):
-    """
-    Like HasParams, but allow parameters to be set up as functions.
-    """
-
-
-def init_param(key, obj, disease):
-    if disease is not None:
-        try:
-            return get_param(key, disease)
-        except ValueError:
-            pass
-    try:
-        return getattr(obj, key)
-    except AttributeError:
-        pass
-
-    try:
-        value = getattr(obj, "_" + key)
-    except AttributeError:
-        raise ImproperlyConfigured(
-            f"""bad parameter: {key}
-
-Classes must either provide explicit default values for parameters or
-implement a _{key}() method used to initialize the parameter during instance
-creation.
-
-The initialization method may explicitly raise exceptions, if it is not
-possible to provide a sane default value for the instance.
-"""
-        )
-    else:
-        if callable(value):
-            return value()
-        return value

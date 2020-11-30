@@ -114,7 +114,7 @@ class WithResultsMixin(ABC):
         """
         Yield keys for the result["params"] dict.
         """
-        yield from self.meta.params.primary
+        yield from self.meta.params
 
     def get_results_value_params(self: "Model", key):
         """

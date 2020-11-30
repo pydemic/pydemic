@@ -32,7 +32,7 @@ class TestResults:
         assert m.results["params.R0"] == m.R0
         assert m.results["params.gamma"] == m.gamma
         assert m.results["params.infectious_period"] == m.infectious_period
-        assert m.results["params"] == approx({"R0": 2.74, "infectious_period": 3.47})
+        assert m.results["params"] == approx({"R0": 2.74, "gamma": 0.288})
 
         # Dates
         dates = m.results["dates"]

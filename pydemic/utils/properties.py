@@ -63,10 +63,9 @@ class param_property(property):
         param = self
 
         def fget(self):
-            from pprint import pprint
-
             try:
-                return self._params[param.name].value
+                value = self._params[param.name]
+                return getattr(value, "value", value)
             except KeyError:
                 if param.default is NOT_GIVEN:
                     name = type(self).__name__
@@ -101,7 +100,8 @@ class param_transform(property):
 
         def fget(self):
             try:
-                value = self._params[varname].value
+                value = self._params[varname]
+                value = getattr(value, "value", value)
             except KeyError:
                 value = self.get_param(varname)
             try:

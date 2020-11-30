@@ -5,16 +5,16 @@ from typing import Union, Type, Sequence
 
 import sidekick as sk
 
-from pydemic.utils import as_seq
 from . import config
 from .types import Result
-from .utils import today
+from .utils import today, as_seq
 
 PERIOD_ALIASES = {
     "day": datetime.timedelta(days=1),
     "week": datetime.timedelta(days=7),
     **{"{n}h": datetime.timedelta(hours=n) for n in range(1, 25)},
 }
+
 
 # TODO: abstract the many available Python caching libs and move this
 # functionality to sidekick
@@ -25,6 +25,7 @@ PERIOD_ALIASES = {
 # - https://github.com/lonelyenvoy/python-memoization
 
 
+# noinspection PyUnresolvedReferences
 @sk.fn.curry(2)
 def ttl_cache(key, fn, *, timeout=6 * 3600, **cache_kwargs):
     """
@@ -187,3 +188,17 @@ def wraps_with_cache(fn, cache=None):
         if hasattr(cache, attr):
             setattr(wrapped, attr, getattr(cache, attr))
     return wrapped
+
+
+if __name__ == "__main__":
+    import click
+    import shutil
+
+    @click.command()
+    @click.option("--clean", is_flag=True, help="Clean joblib's cache.")
+    def main(clean):
+        if clean:
+            path = config.user_path() / "cache"
+            shutil.rmtree(path)
+
+    main()

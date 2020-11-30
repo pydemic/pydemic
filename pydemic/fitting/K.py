@@ -3,9 +3,9 @@ from typing import Sequence
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
+from mundi.pandas import Pandas
 from statsmodels.regression.rolling import RollingOLS
 
-from mundi.pandas import Pandas
 from .utils import diff, smooth, cases
 from ..docs import docstring
 from ..types import ValueStd

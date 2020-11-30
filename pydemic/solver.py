@@ -7,9 +7,9 @@ from typing import Union, Mapping, Sequence, Callable, Tuple, FrozenSet
 import numpy as np
 import pandas as pd
 
+from .types import Numeric
 from .formulas import sir, seir, seair
 
-Numeric = float
 IC = Union[Mapping[str, Numeric], Sequence[Numeric]]
 ParamsF: Callable[[Union[None, float]], Mapping[str, Numeric]]
 empty = MappingProxyType({})

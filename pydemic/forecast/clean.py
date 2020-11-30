@@ -1,19 +1,10 @@
-from types import MappingProxyType
-from typing import cast
-
-import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
-from matplotlib.axes import Axes
-from statsmodels import api as sm
-from statsmodels.tsa.seasonal import seasonal_decompose, STL
-
 from mundi import region
-from pydemic.fitting import diff
-from pydemic.plot import mark_x, color
-from pydemic.region import RegionT
-from pydemic.types import ValueStd
-from pydemic.utils import coalesce
+
+from ..fitting import diff
+from ..region import RegionT
+from ..utils import coalesce
 from pydemic_ui import st
 
 id_ = lambda x: x

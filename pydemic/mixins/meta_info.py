@@ -8,11 +8,12 @@ from typing import (
     Iterable,
     TypeVar,
     Sequence,
+    Mapping,
 )
 
-from .params_info import ParamsInfo
 from .. import utils
 from ..solver import Solver
+from ..types import Numeric
 
 if TYPE_CHECKING:
     from ..models import Model  # noqa: F401
@@ -23,20 +24,17 @@ T = TypeVar("T")
 
 class Meta:
     """
-    Meta information about model.
-
-    Attributes:
-        params:
-            Information about parameters, subclass of :class:`ParamsInfo`
+    Meta information about model. This is stored as a .meta parameter in model
+    classes.
     """
 
     cls: Type["Model"]
     model_name: str
-    params: "ParamsInfo"
     variables: Tuple[str]
     data_aliases: Dict[str, str]
     plot_columns: FrozenSet[str]
     solver_model: Type[Solver]
+    params: Mapping[str, Numeric]
     ndim: int
 
     @classmethod
@@ -59,11 +57,11 @@ class Meta:
         self.explicit_kwargs = kwargs.copy()
         self.variables = tuple(p.name for p in sorted(iter_state_variables(cls)))
         self.ndim = len(self.variables)
-        self.params = ParamsInfo(cls)
         self.data_aliases = data_aliases(cls, kwargs.pop("data_aliases", None))
 
         # Keyword variables
         keywords = explicit_keywords(cls, self=True)
+        self.params = keywords.get("params", {})
         self.model_name = keywords.get("model_name", "Model")
         self.solver_model = keywords.get("solver_model", Solver)
 
@@ -73,7 +71,7 @@ class Meta:
         self.plot_columns = frozenset(merge_with_ellipsis(new, bases))
 
         # Check keyword args
-        invalid = set(kwargs) - {"model_name", "plot_columns", "solver_model"}
+        invalid = set(kwargs) - {"model_name", "plot_columns", "solver_model", "params"}
         if invalid:
             raise TypeError(f"invalid arguments: {invalid}")
 

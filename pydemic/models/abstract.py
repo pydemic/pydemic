@@ -13,6 +13,7 @@ from ..formulas import K, R0_from_K
 from ..packages import np, sk, integrate, pd
 from ..utils import param_property, state_property, inverse_transform
 from ..utils import param_transform
+from ..params.model_params import SIRParams, SEIRParams, SEAIRParams
 
 Param = Any
 T = TypeVar("T")
@@ -27,6 +28,7 @@ class AbstractSIR(Model, ABC):
 
     class Meta:
         model_name = "SIR"
+        params = SIRParams()
         data_aliases = {
             "S": "susceptible",
             "I": "infectious",
@@ -119,6 +121,7 @@ class AbstractSEIR(AbstractSIR):
 
     class Meta:
         model_name = "SEIR"
+        params = SEIRParams()
         data_aliases = {"E": "exposed", "exposed": None}
 
     # Basic epidemiological parameters
@@ -167,6 +170,7 @@ class AbstractSEAIR(AbstractSEIR, ABC):
 
     class Meta:
         model_name = "SEAIR"
+        params = SEAIRParams()
         data_aliases = {"A": "asymptomatic"}
 
     # Basic epidemiological parameters

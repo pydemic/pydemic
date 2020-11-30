@@ -1,11 +1,9 @@
-import numpy as np
-from pydemic.utils import trim_zeros
 import pandas as pd
 from fbprophet import Prophet
 from matplotlib import pyplot as plt
 from mundi import region
-from pydemic.models import SEAIR
-from pydemic.region import RegionT
+
+from ..region import RegionT
 from pydemic_ui import st
 
 plt.gcf()

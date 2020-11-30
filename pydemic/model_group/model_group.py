@@ -1,17 +1,16 @@
-import operator
 from collections import Sequence
 from types import MappingProxyType
 from typing import Iterable, Union, Type
 
-import pandas as pd
-
 import mundi
+import pandas as pd
 from mundi import Region
-from pydemic.utils import extract_keys
+
 from .model_list import ModelList
 from .properties import ModelGroupClinical, ModelGroupInfo, ModelGroupResults
-from .utils import map_models, prepare_data
+from .utils import prepare_data
 from ..models import Model
+from ..utils import extract_keys
 
 
 class ModelGroup(Iterable):

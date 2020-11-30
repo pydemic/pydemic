@@ -94,7 +94,7 @@ class WithDataMixin(ABC):
         # Finally, it may correspond to a parameter. We have two options. It may
         # be explicitly stored as a time-series or it may be computed implicitly
         # from the other parameters.
-        if name in self.meta.params.all:
+        if name in self.meta.params:
             x = self.get_param(name)
             times = self.times[idx or slice(None, None)]
             return pd.Series([x] * len(times), index=times, name=name)

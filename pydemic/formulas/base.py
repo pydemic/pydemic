@@ -5,7 +5,8 @@ from numbers import Real
 
 import numpy as np
 
-from ..params import get_param, ParamLike
+from ..params import get_param
+from pydemic.types.numeric import ParamLike
 
 # Function registry
 FUNCTIONS_R0_FROM_K = {}

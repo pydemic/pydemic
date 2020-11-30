@@ -4,6 +4,7 @@ import pandas as pd
 import sidekick as sk
 from scipy.integrate import cumtrapz
 
+from ..params.model_params import ClinicalParams
 from ..models import Model
 from ..utils import param_property, param_alias
 
@@ -18,12 +19,15 @@ class ClinicalModel(Model, ABC):
         model_name = "Clinical"
         data_aliases = {"H": "hospitalized", "D": "deaths"}
         plot_columns = ("hospitalized_cases", "hospitalized", "deaths")
+        params = ClinicalParams()
 
     # Delegates (population parameters)
     parent_model = sk.alias("infection_model")
-    population = sk.delegate_to("infection_model")
-    K = sk.delegate_to("infection_model")
     R0 = sk.delegate_to("infection_model")
+    K = sk.delegate_to("infection_model")
+    disease = sk.lazy(lambda self: self.infection_model.disease)
+    disease_params = sk.lazy(lambda self: self.infection_model.disease_params)
+    population = sk.delegate_to("infection_model")
     age_distribution = sk.delegate_to("infection_model")
     age_pyramid = sk.delegate_to("infection_model")
 

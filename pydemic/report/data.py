@@ -1,7 +1,7 @@
 import numpy as np
 
 import mundi
-from pydemic.api.covid19 import download_brasil_io_cases
+from ..api.covid19 import download_brasil_io_cases
 from pydemic_ui import st
 
 

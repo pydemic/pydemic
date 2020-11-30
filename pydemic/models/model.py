@@ -55,6 +55,7 @@ class Model(
     class Meta:
         model_name = "Model"
         data_aliases = {}
+        params = {}
 
     # Initial values
     state: np.ndarray = None
@@ -101,12 +102,14 @@ class Model(
     ):
         self.name = name or f"{type(self).__name__} model"
         self.date = pd.to_datetime(date or today())
-        self.disease = get_disease(disease)
+        if self.disease is None:
+            self.disease = get_disease(disease)
         self._initialized = False
 
         # Fix demography
         demography_opts = WithRegionDemography._init_from_dict(self, kwargs)
-        self.disease_params = self.disease.params(**demography_opts)
+        if self.disease_params is None:
+            self.disease_params = self.disease.params(**demography_opts)
 
         # Init other mixins
         WithParamsMixin.__init__(self, params, keywords=kwargs)
@@ -178,7 +181,7 @@ class Model(
             if k in data:
                 data[k] = kwargs.pop(k)
 
-        new._params = copy(params)
+        new._params = params.copy()
         new._results_cache = {}
         new.__dict__.update(copy(data))
 

@@ -20,6 +20,4 @@ class TestMetaClass:
         }
 
         # Parameters
-        assert meta.params.primary == {"R0", "infectious_period"}
-        assert meta.params.alternative == {"gamma"}
-        assert meta.params.all == {*meta.params.primary, *meta.params.alternative}
+        assert set(meta.params) == {"R0", "gamma"}
