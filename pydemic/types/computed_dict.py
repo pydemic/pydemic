@@ -1,6 +1,6 @@
 from collections import MutableMapping, ChainMap
 from operator import itemgetter
-from typing import Sequence
+from typing import Sequence, Mapping
 
 import sidekick.api as sk
 
@@ -264,7 +264,7 @@ class ComputedDict(MutableMapping):
         """
         Iterator over keys.
         """
-        yield from self._independent
+        yield from self
         if dependent:
             yield from self._dependent
 
@@ -318,6 +318,37 @@ class DelayedArgsComputedDict(ComputedDict):
             raise ValueError(msg)
         else:
             return True
+
+
+class ProxyDict(Mapping):
+    """
+    Wraps an object into a dict and associate keys to method calls.
+    """
+
+    def __init__(self, obj, args=(), kwargs=None, fields=()):
+        self._wrapped = obj
+        self._args = tuple(args)
+        self._kwargs = dict(kwargs or {})
+        self._fields = set(fields)
+
+    def __iter__(self):
+        yield from self._fields
+
+    def __getitem__(self, key):
+        if key in self._fields:
+            fn = getattr(self._wrapped, key)
+            return fn(*self._args, **self._kwargs)
+        raise KeyError(key)
+
+    def __len__(self):
+        return len(self._fields)
+
+
+class ComputedProxyDict(ComputedDict):
+    def __init__(self, obj, args=(), kwargs=None, fields=()):
+        proxy = ProxyDict(obj, args, kwargs, fields)
+        super().__init__()
+        self._independent = ChainMap(self._independent, proxy)
 
 
 #

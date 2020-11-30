@@ -16,7 +16,6 @@ from ..diseases import Disease, DiseaseParams, disease as get_disease
 from ..logging import log
 from ..mixins import Meta, WithDataModelMixin, WithInfoMixin, WithResultsMixin, WithRegionDemography
 from ..packages import plt
-from ..params.params import ParamsFromNamespace
 from ..solver import Solver
 from ..types import Numeric, ComputedDict
 from ..utils import today, not_implemented, extract_keys, param_property
@@ -143,8 +142,7 @@ class Model(
                 raise TypeError(f"invalid arguments: {k}")
 
         solver = self.meta.solver_model
-        params = ParamsFromNamespace(self, solver.param_names)
-        self._solver = solver(params)
+        self._solver = solver(self._params)
 
         if run is not None:
             self.run(run)
