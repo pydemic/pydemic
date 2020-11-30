@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING, Iterable
 
 import pandas as pd
 
+
 if TYPE_CHECKING:
     from ..models import Model  # noqa: F401
 
@@ -102,7 +103,7 @@ def model_group_method(attr, out=None):
     return method
 
 
-def group(x):
+def model_group(x):
     """
     Convert object to ModelGroup.
     """

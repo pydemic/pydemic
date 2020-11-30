@@ -1,14 +1,15 @@
+import operator
+from collections import MutableSequence
 from collections import Sequence
 from types import MappingProxyType
 from typing import Iterable, Union, Type
+from weakref import ref
 
 import mundi
 import pandas as pd
 from mundi import Region
 
-from .model_list import ModelList
-from .properties import ModelGroupClinical, ModelGroupInfo, ModelGroupResults
-from .utils import prepare_data
+from .utils import map_models, map_method, prepare_data, model_group_method, model_group
 from ..models import Model
 from ..utils import extract_keys
 
@@ -18,10 +19,10 @@ class ModelGroup(Iterable):
     A group of (usually) closely related model instances.
     """
 
-    models: ModelList
-    info: ModelGroupInfo = property(ModelGroupInfo)
-    results: ModelGroupResults = property(ModelGroupResults)
-    clinical: ModelGroupClinical = property(ModelGroupClinical)
+    models: "ModelList"
+    info: "ModelGroupInfo" = property(lambda self: ModelGroupInfo(self))
+    results: "ModelGroupResults" = property(lambda self: ModelGroupResults(self))
+    clinical: "ModelGroupClinical" = property(lambda self: ModelGroupClinical(self))
     kind: Type[Model] = Model
 
     @property
@@ -169,3 +170,175 @@ class ModelGroup(Iterable):
         """
         for m in self:
             m.run(period)
+
+
+#
+# Auxiliary classes
+#
+class ModelList(MutableSequence):
+    """
+    Implements the "models" attribute of a model group.
+
+    It offers a list-like interface to the models included in a ModelGroup.
+    """
+
+    __slots__ = ("_data", "_group")
+
+    group: "ModelGroup" = property(lambda self: self._group())
+    _data: list
+
+    def __init__(self, group: "ModelGroup", data: list):
+        self._group = ref(group)
+        self._data = data
+
+    def __getitem__(self, idx):
+        if isinstance(idx, str):
+            for m in self._data:
+                if m.name == idx:
+                    return m
+            else:
+                raise KeyError(f"no model named {idx!r}")
+
+        data = self._data[idx]
+        if isinstance(data, list):
+            cls = type(self._group)
+            return cls(data)
+        return data
+
+    def __setitem__(self, idx, obj) -> None:
+        old = self[idx]
+        model_cls = self.group.kind
+        if isinstance(old, type(self._group)):
+            data = getattr(obj, "models", obj)
+            if not all(isinstance(m, model_cls) for m in data):
+                raise self._insert_type_error()
+            self._data[idx] = data
+        elif isinstance(obj, model_cls):
+            self._data[idx] = obj
+        else:
+            raise self._insert_type_error()
+
+    def __delitem__(self, i: int) -> None:
+        del self._data[i]
+
+    def __len__(self) -> int:
+        return len(self._data)
+
+    def insert(self, index: int, obj) -> None:
+        if not isinstance(obj, self.group.kind):
+            raise self._insert_type_error()
+        self._data[index] = obj
+
+    def _insert_type_error(self):
+        return TypeError("can only insert model instances to model group")
+
+
+#
+# Properties for Model groups
+#
+class ModelGroupProp:
+    """
+    Base class for all model group properties.
+    """
+
+    group: "ModelGroup"
+    prop_name: str = None
+    MODEL_METHODS = frozenset()
+    PROP_METHODS = frozenset()
+
+    def __init__(self, group):
+        self.group = group
+
+    def __getitem__(self, item):
+        models = self.iter_items(item)
+        return map_models(operator.itemgetter(item), models)
+
+    def __getattr__(self, item):
+        if item in self.MODEL_METHODS:
+
+            def method(*args, **kwargs):
+                return ModelGroup(fn(*args, **kwargs) for fn in self.iter_attr(item))
+
+            method.__name__ = item
+            return method
+
+        if item in self.PROP_METHODS:
+
+            def method(*args, **kwargs):
+                return [fn(*args, **kwargs) for fn in self.iter_attr(item)]
+
+            method.__name__ = item
+            return method
+
+        return list(self.iter_attr(item))
+
+    def __dir__(self):
+        try:
+            prop = next(self.iter_pros())
+            prop_attrs = dir(prop)
+        except IndexError:
+            prop_attrs = ()
+        return list({*super().__dir__(), *prop_attrs})
+
+    def iter_props(self):
+        """
+        Iterate over each accessor.
+        """
+        prop_name = self.prop_name
+        for m in self.group:
+            yield getattr(m, prop_name)
+
+    def iter_items(self, item):
+        """
+        Iterate over each accessor, selecting the given item.
+        """
+        for prop in self.iter_props():
+            yield prop[item]
+
+    def iter_attr(self, attr):
+        """
+        Iterate over each accessor, selecting the given attribute.
+        """
+        for prop in self.iter_props():
+            yield getattr(prop, attr)
+
+    def iter_method(self, *args, **kwargs):
+        """
+        Iterate over each accessor, executing the given method forwarding
+        the passed arguments.
+        """
+        method, *args = args
+        for fn in self.iter_attr(method):
+            yield fn(*args, **kwargs)
+
+
+class ModelGroupInfo(ModelGroupProp):
+    """
+    Implements the "info" attribute of model groups.
+    """
+
+    prop_name = "info"
+
+
+class ModelGroupResults(ModelGroupProp):
+    """
+    Implements the "results" attribute of model groups.
+    """
+
+    prop_name = "results"
+
+
+class ModelGroupClinical(ModelGroupProp):
+    """
+    Implements the "clinical" attribute of model groups.
+    """
+
+    prop_name = "clinical"
+    MODEL_METHODS = {"clinical_model", "crude_model", "delay_model", "overflow_model"}
+
+    def __call__(self, *args, **kwargs):
+        return model_group(map_method("clinical", self.group, *args, **kwargs))
+
+    crude_model = model_group_method("clinical.crude_model", out=model_group)
+    delay_model = model_group_method("clinical.delay_model", out=model_group)
+    overflow_model = model_group_method("clinical.overflow_model", out=model_group)
