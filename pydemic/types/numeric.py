@@ -1,6 +1,6 @@
 from numbers import Number
 from types import SimpleNamespace
-from typing import NamedTuple, Any, Iterable, Tuple, Optional, Union, Callable
+from typing import Any, Iterable, Tuple, Optional, Union, Callable
 
 import numpy as np
 import pandas as pd
@@ -69,22 +69,60 @@ class Result(ResultMixin, sk.Record):
     info: Any = None
 
 
-class ValueCI(ResultMixin, NamedTuple):
+class UserFloat(float):
+    """
+    Base class for all user-defined floats
+    """
+
+    __slots__ = ("ref", "pdf", "unit")
+
+    # Expose the floating point value as a property. It makes it consistent
+    # with other personalized values.
+    value: float = property(float)
+
+    #: Reference in the literature from where the parameter was extracted
+    ref: Optional[str]
+
+    #: Probability density function that generates random values for the parameter.
+    pdf: Optional[Union[Callable, str]]
+
+    #: Unit used for the parameter
+    unit: Optional[str]
+
+    def __new__(cls, data, *args, ref=None, pdf=None, unit=None, **kwargs):
+        new = object.__new__(cls, data)
+        new.ref = ref
+        new.pdf = pdf
+        new.unit = unit
+        return new
+
+    def __init__(self, data, *args, ref=None, pdf=None, unit=None, **kwargs):
+        super().__init__(data)
+
+
+class ValueCI(UserFloat):
     """
     Value with a confidence interval.
     """
 
-    value: Numeric
+    __slots__ = ("low", "high")
+    value: float = property(float)
     low: Numeric
     high: Numeric
 
+    def __init__(self, data, low=None, high=None, **kwargs):
+        super().__init__(data, **kwargs)
+        self.low = float(data if low is None else low)
+        self.high = float(data if high is None else high)
 
-class ValueStd(ResultMixin, NamedTuple):
+
+class ValueStd(UserFloat):
     """
     A value that represents a number with its standard deviation.
     """
 
-    value: float
+    __slots__ = ("std",)
+    value: float = property(float)
     std: float
 
     @classmethod
@@ -114,6 +152,10 @@ class ValueStd(ResultMixin, NamedTuple):
             N += 1
 
         return ValueStd(cum_var / weights, np.sqrt(cum_var / N))
+
+    def __init__(self, data, std=0.0, **kwargs):
+        super().__init__(data, **kwargs)
+        self.std = float(std)
 
     def apply(self, func, derivative=None):
         """
@@ -150,16 +192,3 @@ class Param(ResultMixin, sk.Record):
             suffix.append(str(self.pdf))
         suffix = ", ".join(suffix)
         return f"{self.value} ({suffix})" if suffix else str(self.value)
-
-
-def param(value: ParamLike, ref=None, pdf=None) -> Param:
-    """
-    Declares a parameter with optional reference attribution and RVS
-    attribution.
-    """
-    if isinstance(value, Param):
-        ref = ref or value.ref
-        pdf = pdf or value.pdf
-        value = value.value
-
-    return Param(value, ref, pdf)

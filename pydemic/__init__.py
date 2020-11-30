@@ -19,7 +19,6 @@ from . import clinical_models
 from . import fitting
 from .diseases import disease
 from .params import Params, get_param, select_param
-from .types import param
 from .model_group import ModelGroup
 from .logging import log
 

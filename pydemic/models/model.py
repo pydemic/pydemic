@@ -14,18 +14,12 @@ from .. import fitting as fit
 from .. import formulas
 from ..diseases import Disease, DiseaseParams, disease as get_disease
 from ..logging import log
-from ..mixins import (
-    Meta,
-    WithParamsMixin,
-    WithDataModelMixin,
-    WithInfoMixin,
-    WithResultsMixin,
-    WithRegionDemography,
-)
+from ..mixins import Meta, WithDataModelMixin, WithInfoMixin, WithResultsMixin, WithRegionDemography
 from ..packages import plt
 from ..params.params import ParamsFromNamespace
-from ..utils import today, not_implemented, extract_keys, param_property
 from ..solver import Solver
+from ..types import Numeric
+from ..utils import today, not_implemented, extract_keys, param_property
 
 T = TypeVar("T")
 NOW = datetime.datetime.now()
@@ -39,12 +33,7 @@ if TYPE_CHECKING:
 
 
 class Model(
-    WithDataModelMixin,
-    WithInfoMixin,
-    WithResultsMixin,
-    WithParamsMixin,
-    WithRegionDemography,
-    metaclass=ModelMeta,
+    WithDataModelMixin, WithInfoMixin, WithResultsMixin, WithRegionDemography, metaclass=ModelMeta
 ):
     """
     Base class for all models.
@@ -61,6 +50,7 @@ class Model(
     state: np.ndarray = None
     initial_cases: float = sk.lazy(lambda self: self._initial_cases())
     initial_infected: float = sk.lazy(lambda self: self._initial_infected())
+    name: str
 
     # Initial time
     date: datetime.date = None
@@ -111,8 +101,21 @@ class Model(
         if self.disease_params is None:
             self.disease_params = self.disease.params(**demography_opts)
 
+        # Initialize model parameters
+        self._params = self.meta.params.copy()
+        params = params or {}
+        for key, value in self.meta.params.items():
+            if key in params:
+                value = params[key]
+            elif key in kwargs:
+                value = kwargs.pop(key)
+            elif key in self.disease_params:
+                value = self.disease_params[key]
+            else:
+                continue
+            self._params[key] = value
+
         # Init other mixins
-        WithParamsMixin.__init__(self, params, keywords=kwargs)
         WithInfoMixin.__init__(self)
         WithResultsMixin.__init__(self)
         WithDataModelMixin.__init__(self)
@@ -154,6 +157,29 @@ class Model(
         Return the epidemic model name.
         """
         return self.meta.model_name
+
+    #
+    # Parameters
+    #
+    def set_param(self, name, value):
+        """
+        Sets a parameter in the model, possibly assigning a distribution and
+        reference.
+        """
+        if name not in self._params:
+            raise ValueError(f"invalid parameter: {name}")
+        log.debug(f"{type(self).__name__}.{name} = {value!r} ({self.name})")
+        self._params[name] = value
+        return self
+
+    def get_param(self, name) -> Numeric:
+        """
+        Return the parameter with given name.
+        """
+        try:
+            return self._params[name]
+        except KeyError:
+            raise ValueError(f"invalid parameter name: {name!r}")
 
     #
     # Pickling and copying
