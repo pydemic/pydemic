@@ -8,12 +8,11 @@ from typing import (
     Iterable,
     TypeVar,
     Sequence,
-    Mapping,
 )
 
 from .. import utils
 from ..solver import Solver
-from ..types import Numeric
+from ..types import ComputedDict
 
 if TYPE_CHECKING:
     from ..models import Model  # noqa: F401
@@ -34,7 +33,7 @@ class Meta:
     data_aliases: Dict[str, str]
     plot_columns: FrozenSet[str]
     solver_model: Type[Solver]
-    params: Mapping[str, Numeric]
+    params: ComputedDict
     ndim: int
 
     @classmethod
@@ -61,7 +60,7 @@ class Meta:
 
         # Keyword variables
         keywords = explicit_keywords(cls, self=True)
-        self.params = keywords.get("params", {})
+        self.params = keywords.get("params", ComputedDict())
         self.model_name = keywords.get("model_name", "Model")
         self.solver_model = keywords.get("solver_model", Solver)
 

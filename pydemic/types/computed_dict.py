@@ -28,7 +28,7 @@ def transform(fn, inv=None, args=None):
     if inv is not None:
         fn._func_inverse_ = inv
     if args is not None:
-        fn._argnames_ = args
+        fn.argnames = args
     return fn
 
 
@@ -239,6 +239,17 @@ class ComputedDict(MutableMapping):
             for k in self._dependent:
                 yield k, self.eval(k, env)
 
+    def tagged_items(self):
+        """
+        Iterator over triples of (independent, key, value), in which dependent
+        is a boolean telling if the key is independent or not.
+        """
+        for k, v in self._independent.items():
+            yield True, k, v
+        env = {}
+        for k in self._dependent:
+            yield False, k, self.eval(k, env)
+
     def values(self, dependent=False):
         """
         Iterator over values.
@@ -248,6 +259,14 @@ class ComputedDict(MutableMapping):
             env = {}
             for k in self._dependent:
                 yield self.eval(k, env)
+
+    def keys(self, dependent=False):
+        """
+        Iterator over keys.
+        """
+        yield from self._independent
+        if dependent:
+            yield from self._dependent
 
     def caching(self):
         """
@@ -306,6 +325,6 @@ class DelayedArgsComputedDict(ComputedDict):
 #
 def get_argnames(fn):
     try:
-        return fn._argnames_
+        return fn.argnames
     except AttributeError:
         return sk.signature(fn).argnames()

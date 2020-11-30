@@ -7,8 +7,8 @@ from typing import Union, Mapping, Sequence, Callable, Tuple, FrozenSet
 import numpy as np
 import pandas as pd
 
-from .types import Numeric
 from .formulas import sir, seir, seair
+from .types import Numeric
 
 IC = Union[Mapping[str, Numeric], Sequence[Numeric]]
 ParamsF: Callable[[Union[None, float]], Mapping[str, Numeric]]
@@ -439,11 +439,3 @@ class SIRVSolver(Vac1Mixin, SIRSolver):
 
 class SIRSVSolver(Vac1Mixin, SIRSSolver):
     __slots__ = ()
-
-
-# print(SIRSVSolver.variables)
-# SIRSVSolver(R0=2, immunization_rate=0.05, gamma=0.15, immunization_period=20).run(
-#     [1, 0.1], 100, dt=0.5).plot()
-# from matplotlib.pyplot import show;
-#
-# show()

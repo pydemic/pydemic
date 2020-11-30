@@ -2,7 +2,7 @@ import datetime
 import warnings
 from copy import copy
 from types import MappingProxyType
-from typing import Sequence, Mapping, Union, TypeVar, TYPE_CHECKING
+from typing import Sequence, Mapping, Union, TypeVar, TYPE_CHECKING, MutableMapping
 
 import numpy as np
 import pandas as pd
@@ -18,7 +18,7 @@ from ..mixins import Meta, WithDataModelMixin, WithInfoMixin, WithResultsMixin, 
 from ..packages import plt
 from ..params.params import ParamsFromNamespace
 from ..solver import Solver
-from ..types import Numeric
+from ..types import Numeric, ComputedDict
 from ..utils import today, not_implemented, extract_keys, param_property
 
 T = TypeVar("T")
@@ -44,7 +44,7 @@ class Model(
     class Meta:
         model_name = "Model"
         data_aliases = {}
-        params = {}
+        params = ComputedDict()
 
     # Initial values
     state: np.ndarray = None
@@ -86,6 +86,12 @@ class Model(
 
     # Private members
     _solver: Solver
+    _params: MutableMapping[str, Numeric]
+
+    def __init_subclass__(cls):
+        super().__init_subclass__()
+        for k in cls.meta.params.keys(dependent=True):
+            setattr(cls, k, param_property(k))
 
     def __init__(
         self, params=None, *, run=None, name=None, date=None, clinical=None, disease=None, **kwargs
@@ -105,10 +111,10 @@ class Model(
         self._params = self.meta.params.copy()
         params = params or {}
         for key, value in self.meta.params.items():
-            if key in params:
-                value = params[key]
-            elif key in kwargs:
+            if key in kwargs:
                 value = kwargs.pop(key)
+            elif key in params:
+                value = params[key]
             elif key in self.disease_params:
                 value = self.disease_params[key]
             else:
@@ -633,3 +639,13 @@ def make_dataframe(model: Model):
     cols = model.meta.variables
     index = [model.time]
     return pd.DataFrame(data, columns=cols, index=index)
+
+
+def param_property(k):
+    def fget(self):
+        return self._params[k]
+
+    def fset(self, value):
+        self._params[k] = value
+
+    return property(fget, fset)

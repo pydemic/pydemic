@@ -10,13 +10,13 @@ class EpidemicParams(ComputedDict):
     __slots__ = ()
     R0: float = 1.0
     serial_period: float = 1.0
-    K: float = transform("(R0 - 1) / serial_period", "K * (serial_period + 1)")
+    K: float = transform("(R0 - 1) / serial_period", "K * serial_period + 1")
     duplication_time: float = transform("log(2) / K", "log(2) / tau")
 
 
 class SIRParams(EpidemicParams):
     """
-    Declare parameters for the SIR model.
+    Declare parameters for the SIR family of models.
     """
 
     __slots__ = ()
@@ -27,7 +27,7 @@ class SIRParams(EpidemicParams):
 
     # Derived parameters and expressions
     beta: float = transform(formulas.sir.beta.formula)
-    K: float = transform(formulas.sir.beta.formula, formulas.sir.R0_from_K)
+    K: float = transform(formulas.sir.K.formula, formulas.sir.R0_from_K.formula)
 
 
 class SEIRParams(SIRParams):

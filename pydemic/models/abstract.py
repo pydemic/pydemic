@@ -6,14 +6,13 @@ import numpy as np
 import pandas as pd
 from scipy import integrate
 from sidekick import X
-from sidekick import placeholder as _
 
 from .model import Model
 from ..formulas import K, R0_from_K
 from ..packages import np, sk, integrate, pd
-from ..utils import param_property, state_property, inverse_transform
-from ..utils import param_transform
 from ..params.model_params import SIRParams, SEIRParams, SEAIRParams
+from ..utils import param_property, state_property
+from ..utils import param_transform
 
 Param = Any
 T = TypeVar("T")
@@ -43,30 +42,14 @@ class AbstractSIR(Model, ABC):
     infectious: float = state_property(1)
     recovered: float = state_property(2)
 
-    #
-    # Accessors for parameters from other models
-    #
-
-    # Basic epidemiological parameters
-    infectious_period: float = param_property("infectious_period", default=1.0)
-
-    # SIR model assumes all cases are symptomatic
-    prob_symptoms: float = 1.0
-    Qs: float = sk.alias("prob_symptoms", mutable=True)
-
-    # A null incubation period implies an infinite sigma. We instead assign
-    # a very small value to avoid ZeroDivision errors
-    incubation_period: float = 1e-50
-    sigma: float = sk.alias("incubation_period", transform=(1 / X), prepare=(1 / X))
-
-    # The rationale for Rho defaulting to 1 is that the difference between
-    # regular and asymptomatic cases is simply a matter of notification
+    incubation_period: float = 1.0
+    sigma: float = 1.0
     rho: float = 1.0
-
-    # Derived parameters and expressions
-    gamma: float = inverse_transform("infectious_period")
-    beta: float = sk.property(_.gamma * _.R0)
-    K: float = sk.property(_.gamma * (_.R0 - 1))
+    prob_symptoms: float = 1.0
+    Qs: float = 1.0
+    infectious_period: float
+    gamma: float
+    beta: float
 
     #
     # Model API

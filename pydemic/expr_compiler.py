@@ -80,5 +80,6 @@ def compile_expr(src, env=None):
 
     args = ", ".join(varnames)
     fn = eval(f"lambda {args}: {src}", ns)
-    fn._argnames_ = varnames
+    fn.argnames = varnames
+    fn.source = src
     return fn

@@ -1,5 +1,5 @@
 import numpy as np
-
+from pytest import approx
 from pydemic.diseases import covid19
 from pydemic.models import eSIR
 
@@ -9,9 +9,11 @@ class TestSIR:
         m = eSIR(disease=covid19)
         m.run(30)
         res = m["I"]
-        ok = m.data.loc[m.times[0], "infectious"] * np.exp(m.K * m.times)
+        i0 = m.data.loc[m.times[0], "infectious"]
+        ok = i0 * np.exp(m.K * m.times)
 
         assert m.R0 == 2.74
-        assert abs(m.K - m.gamma * 1.74) <= 1e-6
+        assert m.gamma == approx(1 / m.infectious_period)
+        assert m.K == approx(m.gamma * (m.R0 - 1))
         assert m.iter == len(m.data) == len(m.times) == len(m.dates)
         assert np.abs(res / ok - 1).max() < 1e-4
