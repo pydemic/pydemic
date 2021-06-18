@@ -25,7 +25,7 @@ class Covid19(Disease):
         """
         Load epidemic curve for the given region from the internet.
         """
-        from ..api.covid19 import epidemic_curve
+        from mundi.plugins.epidemic.covid19 import epidemic_curve
 
         return epidemic_curve(region, api, **kwargs)
 

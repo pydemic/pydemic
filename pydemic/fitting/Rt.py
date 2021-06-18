@@ -4,7 +4,6 @@ from . import K
 from .epidemic_curves import epidemic_curve
 from .utils import cases
 from .. import formulas
-from ..diseases import disease as get_disease
 from ..docs import docstring
 
 ARGS = """Args:
@@ -117,6 +116,8 @@ def Rt_from_Kt(model, curves, Kt, Re=False, **kwargs) -> pd.DataFrame:
 
     params = kwargs.pop("params", params)
     if params is None:
+        from ..diseases import disease as get_disease
+
         disease = get_disease()
         params = disease.params()
 

@@ -9,7 +9,6 @@ from .epidemic_curves import epidemic_curve
 from .utils import cases
 from ..utils import extract_keys
 from .. import formulas
-from ..diseases import disease as get_disease
 from ..docs import docstring
 from ..types import ValueStd
 
@@ -123,6 +122,8 @@ def R0_from_K(model, curves, K, Re=False, **kwargs) -> ValueStd:
 
     params = kwargs.pop("params", params)
     if params is None:
+        from ..diseases import disease as get_disease
+
         disease = get_disease()
         params = disease.params()
 

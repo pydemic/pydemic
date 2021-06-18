@@ -78,7 +78,7 @@ class UserFloat(float):
 
     # Expose the floating point value as a property. It makes it consistent
     # with other personalized values.
-    value: float = property(float)
+    value: float = property(lambda self: self.__float__())
 
     #: Reference in the literature from where the parameter was extracted
     ref: Optional[str]
@@ -90,14 +90,14 @@ class UserFloat(float):
     unit: Optional[str]
 
     def __new__(cls, data, *args, ref=None, pdf=None, unit=None, **kwargs):
-        new = object.__new__(cls, data)
+        new = float.__new__(cls, data)
         new.ref = ref
         new.pdf = pdf
         new.unit = unit
         return new
 
     def __init__(self, data, *args, ref=None, pdf=None, unit=None, **kwargs):
-        super().__init__(data)
+        float.__init__(self)
 
 
 class ValueCI(UserFloat):
@@ -106,7 +106,6 @@ class ValueCI(UserFloat):
     """
 
     __slots__ = ("low", "high")
-    value: float = property(float)
     low: Numeric
     high: Numeric
 
@@ -122,8 +121,12 @@ class ValueStd(UserFloat):
     """
 
     __slots__ = ("std",)
-    value: float = property(float)
     std: float
+    stats = property(lambda self: (self.value, self.std))
+
+    @property
+    def is_finite(self):
+        return np.isfinite(self.value) and np.isfinite(self.std)
 
     @classmethod
     def mean(cls, iterable: Iterable[Tuple[float, float]], tol=1e-9) -> "ValueStd":

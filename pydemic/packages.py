@@ -1,7 +1,7 @@
 import numpy
 import pandas
 import sidekick
-from sidekick import import_later as _imp
+from sidekick.api import import_later as _imp
 
 plt = _imp("matplotlib.pyplot")
 click = _imp("click")

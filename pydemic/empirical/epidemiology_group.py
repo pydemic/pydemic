@@ -68,7 +68,7 @@ class EpidemiologyGroup(Epidemiology, Sequence):
         """
         Initialize group from a mundi region query.
         """
-        regions = mundi.regions(*args, **kwargs)
+        regions = mundi.regions_dataframe(*args, **kwargs)
         return cls.from_regions(regions.index, disease=disease, params=params)
 
     def __init__(self, curves):

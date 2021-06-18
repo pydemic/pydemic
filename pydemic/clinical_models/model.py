@@ -1,7 +1,7 @@
 from abc import ABC
 
 import pandas as pd
-import sidekick as sk
+import sidekick.api as sk
 from scipy.integrate import cumtrapz
 
 from ..params.model_params import ClinicalParams

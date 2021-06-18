@@ -3,7 +3,7 @@ from typing import Sequence
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
-from mundi.pandas import Pandas
+from mundi.typing import PandasT
 from statsmodels.regression.rolling import RollingOLS
 
 from .utils import diff, smooth, cases
@@ -45,7 +45,7 @@ def method(which, names):
 # Main interface
 #
 @docstring(args=ARGS)
-def estimate_Kt(curves: Pandas, window=14, method="RollingOLS", **kwargs) -> pd.DataFrame:
+def estimate_Kt(curves: PandasT, window=14, method="RollingOLS", **kwargs) -> pd.DataFrame:
     """
     Compute K(t) from the epidemic curves. This is function is just a façade to
     the concrete implementations listed bellow.
@@ -70,7 +70,7 @@ def estimate_Kt(curves: Pandas, window=14, method="RollingOLS", **kwargs) -> pd.
 
 
 @docstring(args=ARGS)
-def estimate_K(curves: Pandas, method="naive", **kwargs) -> ValueStd:
+def estimate_K(curves: PandasT, method="naive", **kwargs) -> ValueStd:
     """
     Compute an stationary K for the entire epidemic curve. This is function is
     just a façade to the concrete implementations listed bellow.
@@ -94,7 +94,7 @@ def estimate_K(curves: Pandas, method="naive", **kwargs) -> ValueStd:
 #
 @docstring(args=ARGS)
 @method("Kt", "naive")
-def naive_Kt(curves: Pandas, window=14) -> pd.DataFrame:
+def naive_Kt(curves: PandasT, window=14) -> pd.DataFrame:
     """
     Return K(t) as the derivative of the logarithm of a smoothed-out series of
     new cases or deaths.

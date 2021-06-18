@@ -5,7 +5,6 @@ import pytest
 from pandas.testing import assert_frame_equal
 from pytest import approx
 
-from pydemic.api.covid19 import epidemic_curve
 from pydemic.diseases import covid19
 
 
@@ -80,14 +79,14 @@ class TestCovid19APIs:
     @pytest.mark.slow
     @pytest.mark.external
     def test_corona_api(self):
-        br = epidemic_curve("BR", api="corona-api.com", extra=True)
+        br = covid19.epidemic_curve("BR", api="corona-api.com", extra=True)
         assert list(br.columns) == ["cases", "deaths", "recovered"]
 
-        br = epidemic_curve("BR", api="corona-api.com", extra=False)
+        br = covid19.epidemic_curve("BR", api="corona-api.com", extra=False)
         assert list(br.columns) == ["cases", "deaths"]
 
     @pytest.mark.slow
     @pytest.mark.external
     def test_brasil_io_api(self):
-        df = epidemic_curve("BR-DF", api="brasil.io")
+        df = covid19.epidemic_curve("BR-DF", api="brasil.io")
         assert list(df.columns) == ["cases", "deaths"]

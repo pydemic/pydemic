@@ -1,5 +1,5 @@
 import weakref
-from collections import MutableMapping
+from collections.abc import MutableMapping
 from functools import lru_cache
 from typing import TYPE_CHECKING, Iterator, Set
 

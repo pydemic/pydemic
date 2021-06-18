@@ -1,7 +1,7 @@
 from collections import MutableMapping, ChainMap
 from functools import partial
 from operator import itemgetter
-from typing import Sequence, Mapping
+from typing import Sequence
 
 import sidekick.api as sk
 
@@ -88,18 +88,7 @@ class ComputedDict(MutableMapping):
             elif key not in self._dependent:
                 self._independent[key] = value
             else:
-                args, fn = self._dependent[key]
-                if hasattr(fn, "_func_inverse_"):
-                    inv = fn._func_inverse_
-                    _, *inv_args = sk.signature(inv).argnames()
-                    if inv_args:
-                        env = self.get_keys(inv_args, {key: value}, dependents=True)
-                        self[args[0]] = inv(value, *(env[k] for k in inv_args))
-                    else:
-                        self[args[0]] = inv(value)
-                else:
-                    self._independent[key] = value
-                    self._dependent.pop(key, None)
+                self._set_computed(key, value)
         except Exception as ex:
             cls = type(ex).__name__
             msg = f"error setting map[{key!r}] = {value!r}; {cls}: {ex}"
@@ -118,16 +107,37 @@ class ComputedDict(MutableMapping):
         return f"{cls}({self._independent})"
 
     def __getstate__(self):
-        return self._dependent, self._independent
+        return self._independent, self._dependent
 
-    def __setstate__(self, state):
-        self._dependent, self._independent = state
+    def __setstate__(self, st):
+        self._independent, self._dependent = st
 
-    def __getinitargs__(self):
-        data = self._independent.copy()
-        for k, (_, fn) in self._dependent.items():
-            data[k] = fn
-        return data
+    def _set_computed(self, key, value):
+        """
+        Set a computed value.
+        """
+        args, fn = self._dependent[key]
+        if hasattr(fn, "_func_inverse_"):
+            inv = fn._func_inverse_
+            _, *inv_args = sk.signature(inv).argnames()
+            if inv_args:
+                env = self.get_keys(inv_args, {key: value}, dependents=True)
+                self[args[0]] = inv(value, *(env[k] for k in inv_args))
+            else:
+                self[args[0]] = inv(value)
+        else:
+            self._independent[key] = value
+            self._dependent.pop(key, None)
+
+    def _get_computed(self, key, env):
+        """
+        Get computed key from environment.
+        """
+        args, fn = self._dependent[key]
+        for arg in args:
+            if arg not in env:
+                env[arg] = self.eval(arg, env)
+        return fn(*(env[k] for k in args))
 
     def update(self, *args, **kwargs):
         """
@@ -155,22 +165,21 @@ class ComputedDict(MutableMapping):
             self._dependent[k] = get_argnames(fn), fn
             self._independent.pop(k, None)
 
-    def eval(self, key, env):
+    def eval(self, key, env: MutableMapping):
         """
         Eval key function within the given environment.
 
-        Independent keys must be called with no argument.
+        Args:
+            key:
+                The desired key.
+            env:
+                A mapping from key to evaluated values. Initialize with an empty
+                dictionary to compute values from scratch.
         """
         try:
             return ChainMap(env, self._independent)[key]
         except KeyError:
-            pass
-
-        args, fn = self._dependent[key]
-        for arg in args:
-            if arg not in env:
-                env[arg] = self.eval(arg, env)
-        return fn(*(env[k] for k in args))
+            return self._get_computed(key, env)
 
     def get_keys(self, keys: Sequence[str], env=None, *, dependents: bool = False) -> dict:
         """
@@ -266,6 +275,25 @@ class ComputedDict(MutableMapping):
             fn_ = partial(fn, *args, **kwargs_)
             dependent[k] = args_, fn_
         return new
+
+
+class BoundComputedDict(ComputedDict):
+    """
+    A computed dict in which computed keys are bound to the first argument.
+    """
+
+    __slots__ = ("object",)
+
+    def __init__(self, obj, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.object = obj
+
+    def _get_computed(self, key, env):
+        args, fn = self._dependent[key]
+        for arg in args[1:]:
+            if arg not in env:
+                env[arg] = self.eval(arg, env)
+        return fn(self.object, *(env[k] for k in args))
 
 
 class DelayedArgsComputedDict(ComputedDict):

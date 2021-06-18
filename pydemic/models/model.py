@@ -1,12 +1,14 @@
 import datetime
 import warnings
 from copy import copy
+from numbers import Real
 from types import MappingProxyType
-from typing import Sequence, Mapping, Union, TypeVar, TYPE_CHECKING, MutableMapping
+from typing import Sequence, Mapping, Union, TypeVar, TYPE_CHECKING, MutableMapping, Optional
 
+import mundi
 import numpy as np
 import pandas as pd
-import sidekick as sk
+import sidekick.api as sk
 
 from .clinical_acessor import Clinical
 from .metaclass import ModelMeta
@@ -14,11 +16,12 @@ from .. import fitting as fit
 from .. import formulas
 from ..diseases import Disease, DiseaseParams, disease as get_disease
 from ..logging import log
-from ..mixins import Meta, WithDataModelMixin, WithInfoMixin, WithResultsMixin, WithRegionDemography
+from ..mixins import Meta, WithDataModelMixin, WithInfoMixin, WithResultsMixin
 from ..packages import plt
 from ..solver import Solver
 from ..types import Numeric, ComputedDict
 from ..utils import today, not_implemented, extract_keys, param_property
+from .utils import extract_demography
 
 T = TypeVar("T")
 NOW = datetime.datetime.now()
@@ -31,9 +34,7 @@ if TYPE_CHECKING:
     from pydemic_ui.model import UIProperty
 
 
-class Model(
-    WithDataModelMixin, WithInfoMixin, WithResultsMixin, WithRegionDemography, metaclass=ModelMeta
-):
+class Model(WithDataModelMixin, WithInfoMixin, WithResultsMixin, metaclass=ModelMeta):
     """
     Base class for all models.
     """
@@ -62,6 +63,11 @@ class Model(
     R0: float = param_property("R0", default=2.0)
     K = sk.property(not_implemented)
     duplication_time = property(lambda self: np.log(2) / self.K)
+
+    # Demography
+    population: Real
+    age_distribution: Optional[pd.Series]
+    age_pyramid: Optional[pd.DataFrame]
 
     # Special accessors
     clinical: Clinical = property(lambda self: Clinical(self))
@@ -93,18 +99,37 @@ class Model(
             setattr(cls, k, param_property(k))
 
     def __init__(
-        self, params=None, *, run=None, name=None, date=None, clinical=None, disease=None, **kwargs
+        self,
+        params=None,
+        *,
+        run=None,
+        name=None,
+        date=None,
+        clinical=None,
+        disease=None,
+        region=None,
+        **kwargs,
     ):
         self.name = name or f"{type(self).__name__} model"
         self.date = pd.to_datetime(date or today())
         if self.disease is None:
             self.disease = get_disease(disease)
+        if region is not None:
+            region = mundi.region(region)
+        self.region = region
         self._initialized = False
 
-        # Fix demography
-        demography_opts = WithRegionDemography._init_from_dict(self, kwargs)
+        # Initialize demography
+        opts = extract_keys(("population", "age_distribution", "age_pyramid"), kwargs)
+        values = extract_demography(self.region, **opts)
+        self.population, self.age_distribution, self.age_pyramid = values
+
+        # We create a synthetic population if none is given
+        if self.population is None:
+            self.population = opts["population"] = 1_000_000
         if self.disease_params is None:
-            self.disease_params = self.disease.params(**demography_opts)
+            opts["region"] = self.region
+            self.disease_params = self.disease.params(**opts)
 
         # Initialize model parameters
         self._params = self.meta.params.copy()
@@ -204,7 +229,6 @@ class Model(
         cls = type(self)
         data = self.__dict__.copy()
         params = data.pop("_params")
-        data.pop("_results_cache")
 
         new = object.__new__(cls)
         for k in list(kwargs):
@@ -212,7 +236,6 @@ class Model(
                 data[k] = kwargs.pop(k)
 
         new._params = params.copy()
-        new._results_cache = {}
         new.__dict__.update(copy(data))
 
         for k, v in kwargs.items():
@@ -430,9 +453,9 @@ class Model(
         if adjust_R0:
             warnings.warn("adjust_R0 argument is deprecated")
             method = "RollingOLS" if adjust_R0 is True else adjust_R0
-            Re, _ = value = fit.estimate_R0(self, curves, Re=True, method=method)
-            assert np.isfinite(Re), f"invalid value for R0: {value}"
-            self.R0 = Re
+            Re = fit.estimate_R0(self, curves, Re=True, method=method)
+            assert np.isfinite(Re.value), f"invalid value for R0: {Re.value}"
+            self.R0 = Re.value
 
         # Save notification it in the info dictionary for reference
         if "cases_observed" in curves:

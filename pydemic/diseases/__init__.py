@@ -29,7 +29,7 @@ def disease(name: Union[Disease, str] = None) -> Disease:
         raise ValueError(msg)
 
 
-def set_default(disease):
+def set_default(disease: Union[Disease, str]):
     """
     Set the global default disease.
     """

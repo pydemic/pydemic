@@ -6,7 +6,7 @@ from pydemic.diseases import covid19
 from pydemic.models import SEAIR
 from pydemic.plot import color, mark_x, mark_y
 
-macros = mundi.regions(parent_id="BR-MG", subtype="healthcare region")
+macros = mundi.regions_dataframe(parent_id="BR-MG", subtype="healthcare region")
 R0 = {
     "BR-MG": 1.27,  # Minas Gerais
     "BR-3106200": 1.09,  # Belo Horizonte

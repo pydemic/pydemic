@@ -2,8 +2,8 @@ import io
 import re
 from typing import Dict, Union
 
-import sidekick as sk
-from sidekick import placeholder as _
+import sidekick.api as sk
+from sidekick.api import placeholder as _
 
 SPACES = re.compile(r"^\s+")
 INDENT = re.compile(r"^\s+")

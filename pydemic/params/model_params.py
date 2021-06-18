@@ -1,5 +1,6 @@
 from .. import formulas
-from ..types import ComputedDict, transform, alias, inverse
+from ..types import ComputedDict
+from pydemic.types import inverse, transform, alias
 
 
 class EpidemicParams(ComputedDict):

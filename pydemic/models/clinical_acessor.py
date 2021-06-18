@@ -1,6 +1,6 @@
 from typing import Union, TYPE_CHECKING
 
-import sidekick as sk
+import sidekick.api as sk
 
 if TYPE_CHECKING:
     from ..clinical_models import CrudeFR, HospitalizationWithDelay, HospitalizationWithOverflow

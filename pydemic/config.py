@@ -2,7 +2,7 @@ from functools import lru_cache
 from pathlib import Path
 
 import joblib
-import sidekick as sk
+import sidekick.api as sk
 
 CACHE_OPTIONS = {}
 
@@ -20,7 +20,7 @@ def user_path():
     return path
 
 
-@lru_cache(32)
+@lru_cache(None)
 def memory(name) -> joblib.Memory:
     """
     Return the joblib's Memory object with the given name.

@@ -1,4 +1,4 @@
-import sidekick as sk
+import sidekick.api as sk
 from sidekick import placeholder as _
 
 from .model import ClinicalObserverModel

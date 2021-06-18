@@ -1,4 +1,5 @@
-from ..types import ComputedProxyDict, inverse, alias
+from ..types import ComputedProxyDict
+from pydemic.types import inverse, alias
 
 
 class DiseaseParams(ComputedProxyDict):

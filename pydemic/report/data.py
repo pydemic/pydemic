@@ -9,7 +9,7 @@ from pydemic_ui import st
 def ibge_to_mundi_codes():
     data = {}
     for kind in ["city"]:  # , "state"]:
-        children = mundi.regions(country_id="BR", type=kind).mundi["numeric_code"]
+        children = mundi.regions_dataframe(country_id="BR", type=kind).mundi["numeric_code"]
         data.update(children["numeric_code"].to_dict())
     return dict((int(v), k) for k, v in data.items())
 

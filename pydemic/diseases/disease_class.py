@@ -6,8 +6,8 @@ from pathlib import Path
 import mundi
 import pandas as pd
 
-import sidekick as sk
-from sidekick import X
+import sidekick.api as sk
+from sidekick.api import X
 from .disease_params import DiseaseParams
 from .utils import (
     QualDataT,
@@ -74,6 +74,8 @@ class Disease(ABC):
         "death_delay",
         "symptom_delay",
         "serial_period",
+        "mortality_table",
+        "hospitalization_table",
     )
 
     def __init__(self, name=None, description=None, full_name=None, path=None):
@@ -210,7 +212,7 @@ class Disease(ABC):
         """
         return self._fatality_ratio("IFR", **kwargs)
 
-    def _fatality_ratio(self, col, age_distribution=None, source=None, region=None):
+    def _fatality_ratio(self, col, age_distribution=None, source=None, region=None, **kwargs):
         table = self.mortality_table(source=source)
 
         if age_distribution is None and region:

@@ -6,6 +6,32 @@ from lark import Lark, InlineTransformer, LarkError
 from sidekick import api as sk
 
 
+class Function:
+    """
+    A picklable function-like object.
+    """
+
+    argnames = sk.delegate_to("_impl")
+    signature = sk.delegate_to("_impl")
+    __signature__ = sk.delegate_to("_impl")
+    __wrapped__ = sk.alias("_impl")
+
+    def __init__(self, src, env=None):
+        self.src = src
+        self.env = env
+        self._impl = compile_expr(src, env)
+
+    def __call__(self, *args, **kwargs):
+        return self._impl(*args, **kwargs)
+
+    def __getstate__(self):
+        return self.src, self.env
+
+    def __setstate__(self, state):
+        self.src, self.env = state
+        self._impl = compíle_expr(self.src, self.env)
+
+
 def inverse(attr):
     """
     Declare field as an inverse transform of another field.
@@ -17,12 +43,12 @@ def inverse(attr):
 
 def transform(fn, inv=None, args=None):
     """
-    Declare field as an inverse transform of another field.
+    Declare field as a transform of other fields.
     """
     if isinstance(fn, str):
-        fn = compile_expr(fn)
+        fn = Function(fn)
     if isinstance(inv, str):
-        inv = compile_expr(inv)
+        inv = Function(inv)
 
     fn = sk.to_callable(fn)
     if inv is not None:

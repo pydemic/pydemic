@@ -76,6 +76,7 @@ class WithInfoMixin(ABC):
         """
         Yield keys for the result["disease"] dict.
         """
+        print(list(self.disease_params))
         yield from self.disease_params
 
     def get_info_value_disease(self: "Model", key):

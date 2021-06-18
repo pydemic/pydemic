@@ -4,7 +4,7 @@ from typing import Callable, TYPE_CHECKING
 import numpy as np
 import pandas as pd
 
-import sidekick as sk
+import sidekick.api as sk
 from .data_transforms import DATA_TRANSFORMS, MODEL_TRANSFORMS
 
 if TYPE_CHECKING:

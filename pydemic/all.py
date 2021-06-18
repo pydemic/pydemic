@@ -5,8 +5,6 @@ from datetime import date, datetime, time, timedelta
 from sidekick import import_later as _imp
 from sidekick import fn, X, Y, F, placeholder as _
 import mundi
-import mundi_demography as mdm
-import mundi_healthcare as mhc
 
 from .jupyter import *
 from .packages import *
@@ -14,7 +12,6 @@ from .models import *
 from .utils import *
 from .diseases import *
 from .formulas import *
-from . import region
 
 sk = _imp("sidekick")
 h = _imp("hyperpython:h")

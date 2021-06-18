@@ -4,7 +4,7 @@ from .. import solver
 
 class eSIR(AbstractSIR):
     """
-    A simple SIR model linearized around the DFE.
+    A simple Susceptible Infectious Recovered model linearized around the DFE.
     """
 
     class Meta:
@@ -13,7 +13,7 @@ class eSIR(AbstractSIR):
 
 class SIR(AbstractSIR):
     """
-    A simple SIR model linearized around the DFE.
+    A simple Susceptible Infectious Recovered model.
     """
 
     class Meta:
@@ -22,7 +22,7 @@ class SIR(AbstractSIR):
 
 class SEIR(AbstractSEIR):
     """
-    A simple SIR model linearized around the DFE.
+    A simple Susceptible Exposed Infectious Recovered model.
     """
 
     class Meta:
@@ -31,7 +31,7 @@ class SEIR(AbstractSEIR):
 
 class SEAIR(AbstractSEAIR):
     """
-    A simple SIR model linearized around the DFE.
+    A simple Susceptible Exposed Asymptomatic Infectious Recovered model.
     """
 
     class Meta:

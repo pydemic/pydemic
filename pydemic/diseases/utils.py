@@ -3,11 +3,10 @@ from numbers import Number
 from typing import Union, NamedTuple
 
 import mundi
-import mundi_demography as mdm
 import numpy as np
 import pandas as pd
 
-import sidekick as sk
+import sidekick.api as sk
 from .. import db
 from .. import fitting as fit
 from ..cache import ttl_cache
@@ -102,7 +101,7 @@ def age_adjusted_average(ages, value):
     aligned.
     """
     if isinstance(ages, str):
-        ages = mdm.age_distribution(ages)
+        ages = mundi.region(ages).age_distribution
     population = ages.values.sum()
     if set(ages.index).issuperset(value.index):
         value = value.reindex(ages.index, method="ffill")
@@ -116,7 +115,7 @@ def world_age_distribution():
     """
     World age distribution computed by summing
     """
-    countries = mundi.countries()
+    countries = mundi.countries_dataframe()
     return countries.mundi["age_distribution"].sum(0)
 
 
@@ -148,7 +147,7 @@ def set_age_distribution_default(dic, value=None, drop=False):
     if ages is None:
         ages = world_age_distribution() if value is None else value
         if isinstance(ages, str):
-            ages = mdm.age_distribution(value)
+            ages = mundi.region(value).age_distribution
         elif not isinstance(ages, (pd.Series, pd.DataFrame)):
             ages = get_param("age_distribution", value)
 

@@ -1,7 +1,7 @@
+import mundi
 from pandas.testing import assert_series_equal, assert_frame_equal
 from pytest import approx
 
-import mundi
 from pydemic.models import SIR
 from pydemic.utils import flatten_dict
 
@@ -22,32 +22,35 @@ class TestInfoMixin:
 
 
 class TestRegionMixin:
-    def test_initialization_options(self):
-        br = mundi.region("BR")
-        it = mundi.region("IT")
-
-        # Initialize with no region
+    def test_initialize_demography_default(self):
         m = SIR()
         assert m.population == 1_000_000
         assert m.region is None
         assert m.age_distribution is None
         assert m.age_pyramid is None
 
-        # Use a region
+    def test_initialize_demography_with_region(self):
+        br = mundi.region("BR")
         m = SIR(region="BR")
         assert m.population == br.population
         assert_series_equal(m.age_distribution, br.age_distribution, check_names=False)
         assert_frame_equal(m.age_pyramid, br.age_pyramid)
 
-        # Mix parameters a region
+    def test_initialize_demography_with_region_and_population(self):
+        br = mundi.region("BR")
         tol = 1e-6
         m = SIR(region="BR", population=1000)
         assert m.population == 1000
-        assert abs(m.age_distribution.sum() - 1000) < tol
-        assert abs(m.age_pyramid.sum().sum() - 1000) < tol
+        assert abs(m.age_distribution.values.sum() - 1000) < tol
+        assert abs(m.age_pyramid.values.sum() - 1000) < tol
 
         ratio = br.age_distribution / m.age_distribution
+        print(ratio, br.population / 1000)
         assert ((ratio - br.population / 1000).dropna().abs() < tol).all()
+
+    def test_flexible_demography_initialization(self):
+        br = mundi.region("BR")
+        it = mundi.region("IT")
 
         # Mixed values: brazilian population with the age_distribution proportions
         # from Italy

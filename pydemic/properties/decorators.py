@@ -6,7 +6,7 @@ from types import MappingProxyType
 from typing import NamedTuple
 
 import numpy as np
-import sidekick as sk
+import sidekick.api as sk
 
 from .base import Property
 

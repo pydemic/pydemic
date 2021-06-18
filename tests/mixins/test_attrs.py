@@ -91,6 +91,8 @@ class TestInfo:
             "severe_delay",
             "severe_period",
             "symptom_delay",
+            "mortality_table",
+            "hospitalization_table",
         }
 
         # Region

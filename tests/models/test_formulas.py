@@ -1,5 +1,5 @@
 import pytest
-import sidekick as sk
+import sidekick.api as sk
 from numpy.testing import assert_almost_equal
 from sidekick import X, Y
 

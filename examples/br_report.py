@@ -30,7 +30,7 @@ def regions(kind, truncate=None, skip=0, parent=None) -> Iterable[Region]:
     except KeyError:
         raise ValueError(f"Invalid region type: {kind}")
 
-    out = mundi.regions(country_code="BR", **query).index
+    out = mundi.regions_dataframe(country_code="BR", **query).index
     if parent is not None:
         out = filter(is_ancestor(parent), map(mundi.region, out))
 

@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-import sidekick as sk
+import sidekick.api as sk
 from scipy.integrate import cumtrapz
 from sidekick import placeholder as _
 
